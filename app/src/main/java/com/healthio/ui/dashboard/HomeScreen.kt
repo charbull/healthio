@@ -123,7 +123,7 @@ fun HomeScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             FluxTimer(
                 state = uiState.timerState,
-                progress = uiState.progress
+                elapsedMillis = uiState.elapsedMillis
             )
             
             Spacer(modifier = Modifier.size(32.dp))

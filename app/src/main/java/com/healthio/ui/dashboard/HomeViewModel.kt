@@ -22,7 +22,8 @@ enum class TimerState {
 
 data class HomeUiState(
     val timerState: TimerState = TimerState.FASTING,
-    val progress: Float = 0f,
+    val progress: Float = 0f, // Deprecated, but keeping to avoid break if I miss something
+    val elapsedMillis: Long = 0L, // New field for 24h timer
     val timeDisplay: String = "00:00:00",
     val startTime: Long? = null,
     val showFeedbackDialog: Boolean = false,
@@ -74,18 +75,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         
         if (currentState.timerState == TimerState.FASTING && currentState.startTime != null) {
             val elapsed = now - currentState.startTime
+            // Progress for legacy/target goal logic (can be used for text feedback if needed)
             val progress = (elapsed.toFloat() / targetFastDuration).coerceIn(0f, 1f)
             
             val timeString = formatDuration(elapsed)
             
             _uiState.value = currentState.copy(
                 progress = progress,
+                elapsedMillis = elapsed,
                 timeDisplay = timeString
             )
         } else {
             // Eating state (or no active fast)
             _uiState.value = currentState.copy(
                 progress = 0f,
+                elapsedMillis = 0L,
                 timeDisplay = "Ready to Fast"
             )
         }
@@ -116,7 +120,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun requestEndFast() {
-        // Just show dialog, don't clear DB yet
         val currentState = _uiState.value
         val now = System.currentTimeMillis()
         val elapsed = if (currentState.startTime != null) now - currentState.startTime else 0L
@@ -134,9 +137,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val startTime = currentState.startTime ?: return
 
         viewModelScope.launch {
-            // Log first
             repository.logCompletedFast(startTime, now)
-            // Then clear state
             repository.endFast()
             _uiState.value = _uiState.value.copy(showFeedbackDialog = false)
         }
