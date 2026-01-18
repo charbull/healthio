@@ -24,8 +24,8 @@ fun StatsScreen(
     val statType by viewModel.statType.collectAsState()
     val chartSeries by viewModel.chartSeries.collectAsState()
     val chartLabels by viewModel.chartLabels.collectAsState()
-    val workoutCount by viewModel.workoutCount.collectAsState()
-    val totalCalories by viewModel.totalCalories.collectAsState()
+    val summaryTitle by viewModel.summaryTitle.collectAsState()
+    val summaryValue by viewModel.summaryValue.collectAsState()
 
     Scaffold(
         topBar = {
@@ -46,18 +46,31 @@ fun StatsScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Stat Type Toggle
-            TabRow(
+            // Stat Type Toggle (Scrollable for many categories)
+            ScrollableTabRow(
                 selectedTabIndex = statType.ordinal,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.primary
+                contentColor = MaterialTheme.colorScheme.primary,
+                edgePadding = 16.dp
             ) {
                 StatType.values().forEach { type ->
                     Tab(
                         selected = statType == type,
                         onClick = { viewModel.setStatType(type) },
-                        text = { Text(type.name, style = MaterialTheme.typography.labelSmall) }
+                        text = { 
+                            Text(
+                                text = when(type) {
+                                    StatType.Fasting -> "Fast"
+                                    StatType.Workouts -> "Sessions"
+                                    StatType.Calories -> "Calories"
+                                    StatType.Macros -> "Macros"
+                                    StatType.WorkoutCalories -> "Burned"
+                                    StatType.WorkoutMinutes -> "Minutes"
+                                },
+                                style = MaterialTheme.typography.labelSmall
+                            ) 
+                        }
                     )
                 }
             }
@@ -79,10 +92,12 @@ fun StatsScreen(
             }
 
             val title = when (statType) {
-                StatType.Fasting -> "Fasting Hours"
-                StatType.Workouts -> "Exercises"
-                StatType.Calories -> "Energy (kcal)"
-                StatType.Macros -> "Macros (Grams)"
+                StatType.Fasting -> "Fasting Time (Hours)"
+                StatType.Workouts -> "Exercises (Sessions)"
+                StatType.WorkoutCalories -> "Calories Burned (kcal)"
+                StatType.WorkoutMinutes -> "Exercise Time (min)"
+                StatType.Calories -> "Energy Intake (kcal)"
+                StatType.Macros -> "Macronutrients (Grams)"
             }
 
             Text(
@@ -91,7 +106,6 @@ fun StatsScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            // Legend for Macros
             if (statType == StatType.Macros) {
                 Row(modifier = Modifier.padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     LegendItem("Protein", Color(0xFF2196F3))
@@ -126,19 +140,8 @@ fun StatsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        val label = when (statType) {
-                            StatType.Fasting -> "Tracking status"
-                            StatType.Workouts -> "Active consistency"
-                            else -> "Total Consumption"
-                        }
-                        val value = when (statType) {
-                            StatType.Fasting -> "Active"
-                            StatType.Workouts -> "$workoutCount sessions logged"
-                            else -> "$totalCalories kcal total"
-                        }
-                        
-                        Text(text = label, style = MaterialTheme.typography.labelMedium)
-                        Text(text = value, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                        Text(text = summaryTitle, style = MaterialTheme.typography.labelMedium)
+                        Text(text = summaryValue, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
