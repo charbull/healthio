@@ -36,8 +36,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             val sdkStatus = HealthConnectClient.getSdkStatus(context)
             android.util.Log.d("Healthio", "Health Connect SDK Status: $sdkStatus")
             
+            if (sdkStatus == HealthConnectClient.SDK_UNAVAILABLE) {
+                _syncState.value = WorkoutSyncState.Error("Health Connect is NOT installed. Please install it to sync Garmin data.")
+                return@launch
+            }
+            
             if (sdkStatus != HealthConnectClient.SDK_AVAILABLE) {
-                _syncState.value = WorkoutSyncState.Error("Health Connect is not available (Status: $sdkStatus)")
+                _syncState.value = WorkoutSyncState.Error("Health Connect is not ready (Status: $sdkStatus)")
                 return@launch
             }
 

@@ -3,7 +3,6 @@ package com.healthio.ui.dashboard
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -29,6 +28,8 @@ import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
 import java.util.Calendar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -43,36 +44,69 @@ fun HomeScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val workoutSyncState by workoutViewModel.syncState.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // State for Dialogs
     var showEntryTypeDialog by remember { mutableStateOf(false) }
     var showWorkoutDialog by remember { mutableStateOf(false) }
+    var showInstallHCDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
+
+    val hcPermissions = setOf(
+        androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.ExerciseSessionRecord::class),
+        androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.TotalCaloriesBurnedRecord::class)
+    )
 
     // Health Connect Permission Launcher
     val permissionsLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
-        if (granted.containsAll(setOf(
-            androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.ExerciseSessionRecord::class),
-            androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.TotalCaloriesBurnedRecord::class)
-        ))) {
+        if (granted.containsAll(hcPermissions)) {
             workoutViewModel.fetchFromHealthConnect()
+        } else {
+            Toast.makeText(context, "Permissions Denied", Toast.LENGTH_SHORT).show()
         }
     }
 
     // Sync State Feedback
     LaunchedEffect(workoutSyncState) {
         if (workoutSyncState is WorkoutSyncState.Success) {
-            Toast.makeText(context, "Imported ${(workoutSyncState as WorkoutSyncState.Success).count} workouts", Toast.LENGTH_SHORT).show()
+            val count = (workoutSyncState as WorkoutSyncState.Success).count
+            Toast.makeText(context, "Imported $count workouts", Toast.LENGTH_SHORT).show()
             workoutViewModel.resetSyncState()
         } else if (workoutSyncState is WorkoutSyncState.Error) {
-            Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Error).message, Toast.LENGTH_LONG).show()
+            val error = (workoutSyncState as WorkoutSyncState.Error).message
+            if (error.contains("NOT installed", ignoreCase = true)) {
+                showInstallHCDialog = true
+            } else {
+                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            }
             workoutViewModel.resetSyncState()
         }
     }
 
     // Dialogs
+    if (showInstallHCDialog) {
+        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = { showInstallHCDialog = false },
+            title = { Text("Health Connect Required") },
+            text = { Text("To sync data from Garmin, Strava, or other apps, you need to install Google Health Connect.") },
+            confirmButton = {
+                Button(onClick = { 
+                    showInstallHCDialog = false
+                    uriHandler.openUri("market://details?id=com.google.android.apps.healthdata")
+                }) {
+                    Text("Install from Play Store")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInstallHCDialog = false }) {
+                    Text("Not Now")
+                }
+            }
+        )
+    }
     if (uiState.showFeedbackDialog) {
         FastCompletedDialog(
             duration = uiState.completedDuration,
@@ -132,10 +166,16 @@ fun HomeScreen(
             onDismiss = { showWorkoutDialog = false },
             onFetchFromHealthConnect = {
                 showWorkoutDialog = false
-                permissionsLauncher.launch(setOf(
-                    androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.ExerciseSessionRecord::class),
-                    androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.TotalCaloriesBurnedRecord::class)
-                ))
+                Toast.makeText(context, "Checking permissions...", Toast.LENGTH_SHORT).show()
+                coroutineScope.launch {
+                    val client = androidx.health.connect.client.HealthConnectClient.getOrCreate(context)
+                    val granted = client.permissionController.getGrantedPermissions()
+                    if (granted.containsAll(hcPermissions)) {
+                        workoutViewModel.fetchFromHealthConnect()
+                    } else {
+                        permissionsLauncher.launch(hcPermissions)
+                    }
+                }
             },
             onManualLog = { type, duration, calories ->
                 workoutViewModel.logManualWorkout(type, duration, calories)
