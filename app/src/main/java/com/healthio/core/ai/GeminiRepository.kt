@@ -9,15 +9,18 @@ import kotlinx.coroutines.withContext
 
 class GeminiRepository {
 
-    suspend fun analyzeImage(bitmap: Bitmap, apiKey: String): Result<FoodAnalysis> = withContext(Dispatchers.IO) {
+    suspend fun analyzeImage(bitmap: Bitmap, apiKey: String, userContext: String? = null): Result<FoodAnalysis> = withContext(Dispatchers.IO) {
         // Use Gemini 2.5 Pro as requested
         val model = GenerativeModel(
             modelName = "gemini-2.5-pro",
             apiKey = apiKey
         )
 
+        val contextString = if (!userContext.isNullOrEmpty()) "User provided context: \"$userContext\"" else ""
+
         val prompt = """
-            Analyze this food image. Identify the main dish.
+            Analyze this food image. $contextString
+            Identify the main dish.
             Estimate calories and macros (Protein, Carbs, Fat) for the visible portion.
             Provide a health score from 1 (Unhealthy) to 10 (Very Healthy).
             Provide a short 1-sentence feedback.

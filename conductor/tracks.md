@@ -14,3 +14,4 @@
 | 02.8 | Chart Polish | **Completed** | [View Track](./tracks/track-02-8-chart-polish/index.md) |
 | 02.9 | Extended Stats Views | **Completed** | [View Track](./tracks/track-02-9-extended-stats/index.md) |
 | 03 | Smart Vision (AI) | **Completed** | [View Track](./tracks/track-03-smart-vision/index.md) |
+| 03.1 | Enhanced Smart Vision | **Completed** | [View Track](./tracks/track-03-1-enhanced-vision/index.md) |

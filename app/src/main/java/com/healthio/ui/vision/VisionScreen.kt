@@ -13,7 +13,9 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -22,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -30,8 +34,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -78,17 +80,31 @@ fun VisionScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (hasPermission) {
-                if (state is VisionState.Idle || state is VisionState.Analyzing) {
-                    CameraContent(
-                        onImageCaptured = { bitmap -> viewModel.analyzeImage(bitmap) },
-                        isAnalyzing = state is VisionState.Analyzing
-                    )
-                } else if (state is VisionState.Success) {
-                    val result = (state as VisionState.Success).analysis
-                    ResultContent(result)
-                } else if (state is VisionState.Error) {
-                    val error = (state as VisionState.Error).message
-                    ErrorContent(error, onRetry = { viewModel.reset() })
+                when (state) {
+                    is VisionState.Idle -> {
+                        CameraContent(
+                            onImageCaptured = { bitmap -> viewModel.onImageCaptured(bitmap) }
+                        )
+                    }
+                    is VisionState.Review -> {
+                        val bitmap = (state as VisionState.Review).bitmap
+                        ReviewContent(
+                            bitmap = bitmap,
+                            onAnalyze = { context -> viewModel.analyzeImage(context) },
+                            onRetake = { viewModel.reset() }
+                        )
+                    }
+                    is VisionState.Analyzing -> {
+                        LoadingContent()
+                    }
+                    is VisionState.Success -> {
+                        val result = (state as VisionState.Success).analysis
+                        ResultContent(result)
+                    }
+                    is VisionState.Error -> {
+                        val error = (state as VisionState.Error).message
+                        ErrorContent(error, onRetry = { viewModel.reset() })
+                    }
                 }
             } else {
                 Text(
@@ -101,7 +117,89 @@ fun VisionScreen(
 }
 
 @Composable
-fun CameraContent(onImageCaptured: (Bitmap) -> Unit, isAnalyzing: Boolean) {
+fun ReviewContent(
+    bitmap: Bitmap,
+    onAnalyze: (String) -> Unit,
+    onRetake: () -> Unit
+) {
+    var contextText by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Image Preview
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Preview",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Context Input
+        OutlinedTextField(
+            value = contextText,
+            onValueChange = { contextText = it },
+            label = { Text("Add Context (Optional)") },
+            placeholder = { Text("e.g. Vegan burger, homemade pasta...") },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 3
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Actions
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedButton(
+                onClick = onRetake,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Retake")
+            }
+            
+            Button(
+                onClick = { onAnalyze(contextText) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Analyze")
+            }
+        }
+    }
+}
+
+@Composable
+fun LoadingContent() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color.Black.copy(alpha = 0.7f)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Analyzing Food...", color = Color.White)
+        }
+    }
+}
+
+@Composable
+fun CameraContent(onImageCaptured: (Bitmap) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val imageCapture = remember { ImageCapture.Builder().build() }
@@ -130,32 +228,16 @@ fun CameraContent(onImageCaptured: (Bitmap) -> Unit, isAnalyzing: Boolean) {
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView({ previewView }, modifier = Modifier.fillMaxSize())
         
-        if (isAnalyzing) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = Color.Black.copy(alpha = 0.7f)
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Analyzing Food...", color = Color.White)
-                }
-            }
-        } else {
-            Button(
-                onClick = {
-                    takePhoto(context, imageCapture, onImageCaptured)
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(32.dp)
-                    .height(64.dp)
-            ) {
-                Text("SNAP & ANALYZE")
-            }
+        Button(
+            onClick = {
+                takePhoto(context, imageCapture, onImageCaptured)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(32.dp)
+                .height(64.dp)
+        ) {
+            Text("SNAP")
         }
     }
 }

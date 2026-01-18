@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 
 sealed class VisionState {
     object Idle : VisionState()
+    data class Review(val bitmap: Bitmap) : VisionState() // New state
     object Analyzing : VisionState()
     data class Success(val analysis: FoodAnalysis) : VisionState()
     data class Error(val message: String) : VisionState()
@@ -29,7 +30,16 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
     private val _state = MutableStateFlow<VisionState>(VisionState.Idle)
     val state: StateFlow<VisionState> = _state.asStateFlow()
 
-    fun analyzeImage(bitmap: Bitmap) {
+    fun onImageCaptured(bitmap: Bitmap) {
+        _state.value = VisionState.Review(bitmap)
+    }
+
+    fun analyzeImage(userContext: String) {
+        val currentState = _state.value
+        if (currentState !is VisionState.Review) return
+        
+        val bitmap = currentState.bitmap
+
         viewModelScope.launch {
             _state.value = VisionState.Analyzing
             
@@ -41,7 +51,7 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
-            val result = repository.analyzeImage(bitmap, apiKey)
+            val result = repository.analyzeImage(bitmap, apiKey, userContext)
             result.onSuccess { analysis ->
                 _state.value = VisionState.Success(analysis)
             }.onFailure { exception ->
