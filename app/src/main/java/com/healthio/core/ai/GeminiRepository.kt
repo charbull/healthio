@@ -10,9 +10,9 @@ import kotlinx.coroutines.withContext
 class GeminiRepository {
 
     suspend fun analyzeImage(bitmap: Bitmap, apiKey: String): Result<FoodAnalysis> = withContext(Dispatchers.IO) {
-        // Use Pro model for better accuracy
+        // Use Pro 002 model for best accuracy
         val model = GenerativeModel(
-            modelName = "gemini-1.5-pro",
+            modelName = "gemini-1.5-pro-002",
             apiKey = apiKey
         )
 
