@@ -19,12 +19,14 @@ fun StatsScreen(
     onBack: () -> Unit,
     viewModel: StatsViewModel = viewModel()
 ) {
-    val logs by viewModel.logs.collectAsState()
+    val timeRange by viewModel.timeRange.collectAsState()
+    val chartEntries by viewModel.chartEntries.collectAsState()
+    val chartLabels by viewModel.chartLabels.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weekly Progress") },
+                title = { Text("Progress") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -40,17 +42,38 @@ fun StatsScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Range Selector
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                TimeRange.values().forEach { range ->
+                    FilterChip(
+                        selected = range == timeRange,
+                        onClick = { viewModel.setTimeRange(range) },
+                        label = { Text(range.name) }
+                    )
+                }
+            }
+
             Text(
-                text = "Fasting Hours (Last 7 Days)",
+                text = when (timeRange) {
+                    TimeRange.Week -> "Fasting Hours (Last 7 Days)"
+                    TimeRange.Month -> "Daily Max (This Month)"
+                    TimeRange.Year -> "Avg Daily Fast (This Year)"
+                },
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            if (logs.isEmpty()) {
+            if (chartEntries.isEmpty()) {
                 Text("No fasting logs yet.", style = MaterialTheme.typography.bodyLarge)
             } else {
-                WeeklyFastingChart(
-                    logs = logs,
+                FastingChart(
+                    entries = chartEntries,
+                    labels = chartLabels,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
