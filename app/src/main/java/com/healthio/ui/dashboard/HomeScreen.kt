@@ -3,7 +3,6 @@ package com.healthio.ui.dashboard
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -18,11 +17,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.health.connect.client.PermissionController
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
-import androidx.health.connect.client.records.WeightRecord
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.healthio.ui.components.AddWorkoutDialog
 import com.healthio.ui.components.FastCompletedDialog
@@ -32,7 +26,6 @@ import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
 import java.util.Calendar
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -47,62 +40,24 @@ fun HomeScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val workoutSyncState by workoutViewModel.syncState.collectAsState()
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     // State for Dialogs
     var showEntryTypeDialog by remember { mutableStateOf(false) }
     var showWorkoutDialog by remember { mutableStateOf(false) }
-    var showInstallHCDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
-    // Use remember to avoid recalculating every composition
-    val hcPermissions = remember {
-        setOf(
-            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
-            HealthPermission.getReadPermission(WeightRecord::class)
-        )
-    }
-
-    val permissionsLauncher = rememberLauncherForActivityResult(
-        PermissionController.createRequestPermissionResultContract()
-    ) { granted ->
-        android.util.Log.d("Healthio", "Granted permissions: $granted")
-        if (granted.containsAll(hcPermissions)) {
-            workoutViewModel.fetchFromHealthConnect()
-        } else {
-            Toast.makeText(context, "Permissions Denied. Only granted: ${granted.size}/${hcPermissions.size}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // Sync State Effect
+    // Sync State Feedback
     LaunchedEffect(workoutSyncState) {
-        when (workoutSyncState) {
-            is WorkoutSyncState.NeedsPermission -> {
-                android.util.Log.d("Healthio", "State: NeedsPermission. Launching...")
-                permissionsLauncher.launch(hcPermissions)
-                workoutViewModel.resetSyncState()
-            }
-            is WorkoutSyncState.Success -> {
-                val count = (workoutSyncState as WorkoutSyncState.Success).count
-                Toast.makeText(context, "Imported $count workouts", Toast.LENGTH_SHORT).show()
-                workoutViewModel.resetSyncState()
-            }
-            is WorkoutSyncState.Error -> {
-                val error = (workoutSyncState as WorkoutSyncState.Error).message
-                android.util.Log.e("Healthio", "Sync Error: $error")
-                if (error.contains("NOT installed", ignoreCase = true) || error.contains("Code 1") || error.contains("Code 2")) {
-                    showInstallHCDialog = true
-                } else {
-                    Toast.makeText(context, "Sync Error: $error", Toast.LENGTH_LONG).show()
-                }
-                workoutViewModel.resetSyncState()
-            }
-            else -> {}
+        if (workoutSyncState is WorkoutSyncState.Success) {
+            Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Success).message, Toast.LENGTH_SHORT).show()
+            workoutViewModel.resetSyncState()
+        } else if (workoutSyncState is WorkoutSyncState.Error) {
+            Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Error).message, Toast.LENGTH_LONG).show()
+            workoutViewModel.resetSyncState()
         }
     }
 
-    // Dialogs (Feedback, Manual Entry, Workout, Install)
+    // Dialogs
     if (uiState.showFeedbackDialog) {
         FastCompletedDialog(
             duration = uiState.completedDuration,
@@ -160,34 +115,8 @@ fun HomeScreen(
     if (showWorkoutDialog) {
         AddWorkoutDialog(
             onDismiss = { showWorkoutDialog = false },
-            onFetchFromHealthConnect = {
-                showWorkoutDialog = false
-                workoutViewModel.fetchFromHealthConnect()
-            },
             onManualLog = { type, duration, calories ->
                 workoutViewModel.logManualWorkout(type, duration, calories)
-            }
-        )
-    }
-
-    if (showInstallHCDialog) {
-        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-        AlertDialog(
-            onDismissRequest = { showInstallHCDialog = false },
-            title = { Text("Health Connect Required") },
-            text = { Text("To sync data from Garmin, Strava, or other apps, you need to install Google Health Connect.") },
-            confirmButton = {
-                Button(onClick = { 
-                    showInstallHCDialog = false
-                    uriHandler.openUri("market://details?id=com.google.android.apps.healthdata")
-                }) {
-                    Text("Install from Play Store")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showInstallHCDialog = false }) {
-                    Text("Not Now")
-                }
             }
         )
     }
