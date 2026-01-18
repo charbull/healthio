@@ -16,6 +16,10 @@ import com.healthio.ui.theme.HealthioTheme
 
 import com.healthio.ui.settings.SettingsScreen
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.healthio.ui.dashboard.HomeViewModel
+import com.healthio.ui.settings.SettingsViewModel
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,12 +30,18 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    
+                    // Create shared ViewModels scoped to the Activity/Graph
+                    val homeViewModel: HomeViewModel = viewModel()
+                    val settingsViewModel: SettingsViewModel = viewModel()
 
                     NavHost(navController = navController, startDestination = "home") {
                         composable("home") {
                             HomeScreen(
                                 onNavigateToStats = { navController.navigate("stats") },
-                                onNavigateToSettings = { navController.navigate("settings") }
+                                onNavigateToSettings = { navController.navigate("settings") },
+                                viewModel = homeViewModel,
+                                settingsViewModel = settingsViewModel
                             )
                         }
                         composable("stats") {
@@ -41,7 +51,8 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("settings") {
                             SettingsScreen(
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                viewModel = settingsViewModel
                             )
                         }
                     }
