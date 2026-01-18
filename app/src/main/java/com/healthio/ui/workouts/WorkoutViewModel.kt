@@ -1,6 +1,7 @@
 package com.healthio.ui.workouts
 
 import android.app.Application
+import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,6 +25,7 @@ sealed class WorkoutSyncState {
 class WorkoutViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(application)
     private val healthManager = HealthConnectManager(application)
+    private val context = application.applicationContext
 
     private val _syncState = MutableStateFlow<WorkoutSyncState>(WorkoutSyncState.Idle)
     val syncState: StateFlow<WorkoutSyncState> = _syncState.asStateFlow()
@@ -31,10 +33,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun fetchFromHealthConnect() {
         viewModelScope.launch {
             _syncState.value = WorkoutSyncState.Syncing
-            android.util.Log.d("Healthio", "Checking Health Connect Availability...")
+            val sdkStatus = HealthConnectClient.getSdkStatus(context)
+            android.util.Log.d("Healthio", "Health Connect SDK Status: $sdkStatus")
             
-            if (!healthManager.isAvailable()) {
-                _syncState.value = WorkoutSyncState.Error("Health Connect not available on this device.")
+            if (sdkStatus != HealthConnectClient.SDK_AVAILABLE) {
+                _syncState.value = WorkoutSyncState.Error("Health Connect is not available (Status: $sdkStatus)")
                 return@launch
             }
 
