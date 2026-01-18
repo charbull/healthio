@@ -24,6 +24,7 @@ fun StatsScreen(
     val chartEntries by viewModel.chartEntries.collectAsState()
     val chartLabels by viewModel.chartLabels.collectAsState()
     val workoutCount by viewModel.workoutCount.collectAsState()
+    val totalCalories by viewModel.totalCalories.collectAsState()
 
     Scaffold(
         topBar = {
@@ -44,7 +45,7 @@ fun StatsScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Stat Type Toggle (Fasting vs Workouts)
+            // Stat Type Toggle (Fasting vs Workouts vs Nutrition)
             TabRow(
                 selectedTabIndex = StatType.values().indexOf(statType),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -76,14 +77,14 @@ fun StatsScreen(
                 }
             }
 
-            val title = if (statType == StatType.Fasting) {
-                when (timeRange) {
+            val title = when (statType) {
+                StatType.Fasting -> when (timeRange) {
                     TimeRange.Week -> "Fasting Hours (Last 7 Days)"
                     TimeRange.Month -> "Daily Max (This Month)"
                     TimeRange.Year -> "Avg Daily Fast (This Year)"
                 }
-            } else {
-                "Workouts / sessions"
+                StatType.Workouts -> "Workouts / sessions"
+                StatType.Nutrition -> "Calorie Intake (kcal)"
             }
 
             Text(
@@ -116,12 +117,23 @@ fun StatsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
+                        val label = when (statType) {
+                            StatType.Fasting -> "Consistency"
+                            StatType.Workouts -> "Activity"
+                            StatType.Nutrition -> "Total Consumption"
+                        }
+                        val value = when (statType) {
+                            StatType.Fasting -> "Tracking active"
+                            StatType.Workouts -> "$workoutCount sessions logged"
+                            StatType.Nutrition -> "$totalCalories kcal total"
+                        }
+                        
                         Text(
-                            text = "Activity",
+                            text = label,
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = "$workoutCount sessions logged",
+                            text = value,
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )
                     }

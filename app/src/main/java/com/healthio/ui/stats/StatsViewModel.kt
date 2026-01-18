@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthio.core.data.FastingRepository
-import com.healthio.core.data.WorkoutRepository
 import com.healthio.core.database.AppDatabase
 import com.healthio.core.database.FastingLog
+import com.healthio.core.database.MealLog
 import com.healthio.core.database.WorkoutLog
 import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.entryOf
@@ -21,11 +21,13 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 enum class TimeRange { Week, Month, Year }
-enum class StatType { Fasting, Workouts }
+enum class StatType { Fasting, Workouts, Nutrition }
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val fastingRepository = FastingRepository(application)
-    private val workoutDao = AppDatabase.getDatabase(application).workoutDao()
+    private val db = AppDatabase.getDatabase(application)
+    private val workoutDao = db.workoutDao()
+    private val mealDao = db.mealDao()
 
     private val _timeRange = MutableStateFlow(TimeRange.Week)
     val timeRange: StateFlow<TimeRange> = _timeRange.asStateFlow()
@@ -42,8 +44,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _workoutCount = MutableStateFlow(0)
     val workoutCount: StateFlow<Int> = _workoutCount.asStateFlow()
 
+    private val _totalCalories = MutableStateFlow(0)
+    val totalCalories: StateFlow<Int> = _totalCalories.asStateFlow()
+
     private var allFastingLogs: List<FastingLog> = emptyList()
     private var allWorkoutLogs: List<WorkoutLog> = emptyList()
+    private var allMealLogs: List<MealLog> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -55,6 +61,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             workoutDao.getAllWorkouts().collect { workouts ->
                 allWorkoutLogs = workouts
+                updateChartData()
+            }
+        }
+        viewModelScope.launch {
+            mealDao.getAllMeals().collect { meals ->
+                allMealLogs = meals
                 updateChartData()
             }
         }
@@ -78,9 +90,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         
         val entries = mutableListOf<ChartEntry>()
         val labels = mutableListOf<String>()
-        var count = 0
 
-        // Determine range parameters
         val labelList = when (range) {
             TimeRange.Week -> listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
             TimeRange.Month -> (1..YearMonth.now(zoneId).lengthOfMonth()).map { it.toString() }
@@ -91,23 +101,33 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val bucketCount = labelList.size
         val dailyValues = mutableMapOf<Int, Float>()
 
-        if (type == StatType.Fasting) {
-            // Existing Fasting Logic
-            allFastingLogs.forEach { log ->
-                val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
-                val (index, include) = getBucketIndex(date, range, today)
-                if (include) {
-                    val hours = (log.durationMillis / (1000f * 60 * 60)).coerceAtLeast(0f)
-                    dailyValues[index] = maxOf(dailyValues[index] ?: 0f, hours)
+        when (type) {
+            StatType.Fasting -> {
+                allFastingLogs.forEach { log ->
+                    val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
+                    val (index, include) = getBucketIndex(date, range, today)
+                    if (include) {
+                        val hours = (log.durationMillis / (1000f * 60 * 60)).coerceAtLeast(0f)
+                        dailyValues[index] = maxOf(dailyValues[index] ?: 0f, hours)
+                    }
                 }
             }
-        } else {
-            // Workout Count Logic
-            allWorkoutLogs.forEach { log ->
-                val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                val (index, include) = getBucketIndex(date, range, today)
-                if (include) {
-                    dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
+            StatType.Workouts -> {
+                allWorkoutLogs.forEach { log ->
+                    val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
+                    val (index, include) = getBucketIndex(date, range, today)
+                    if (include) {
+                        dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
+                    }
+                }
+            }
+            StatType.Nutrition -> {
+                allMealLogs.forEach { log ->
+                    val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
+                    val (index, include) = getBucketIndex(date, range, today)
+                    if (include) {
+                        dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
+                    }
                 }
             }
         }
@@ -116,16 +136,21 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             entries.add(entryOf(i, dailyValues[i+1] ?: 0f))
         }
 
-        // Global count for the card
-        count = allWorkoutLogs.count { log ->
+        // Aggregate totals for info cards
+        _workoutCount.value = allWorkoutLogs.count { log ->
             val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
             val (_, include) = getBucketIndex(date, range, today)
             include
         }
+        
+        _totalCalories.value = allMealLogs.filter { log ->
+            val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
+            val (_, include) = getBucketIndex(date, range, today)
+            include
+        }.sumOf { it.calories }
 
         _chartEntries.value = entries
         _chartLabels.value = labels
-        _workoutCount.value = count
     }
 
     private fun getBucketIndex(date: LocalDate, range: TimeRange, today: LocalDate): Pair<Int, Boolean> {
