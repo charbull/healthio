@@ -22,6 +22,7 @@ import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.WeightRecord
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.healthio.ui.components.AddWorkoutDialog
 import com.healthio.ui.components.FastCompletedDialog
@@ -31,6 +32,7 @@ import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
 import java.util.Calendar
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -45,6 +47,7 @@ fun HomeScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val workoutSyncState by workoutViewModel.syncState.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // State for Dialogs
     var showEntryTypeDialog by remember { mutableStateOf(false) }
@@ -52,18 +55,23 @@ fun HomeScreen(
     var showInstallHCDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
-    val hcPermissions = setOf(
-        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-        HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class)
-    )
+    // Use remember to avoid recalculating every composition
+    val hcPermissions = remember {
+        setOf(
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(WeightRecord::class)
+        )
+    }
 
     val permissionsLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
+        android.util.Log.d("Healthio", "Granted permissions: $granted")
         if (granted.containsAll(hcPermissions)) {
             workoutViewModel.fetchFromHealthConnect()
         } else {
-            Toast.makeText(context, "Permissions Denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Permissions Denied. Only granted: ${granted.size}/${hcPermissions.size}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -71,6 +79,7 @@ fun HomeScreen(
     LaunchedEffect(workoutSyncState) {
         when (workoutSyncState) {
             is WorkoutSyncState.NeedsPermission -> {
+                android.util.Log.d("Healthio", "State: NeedsPermission. Launching...")
                 permissionsLauncher.launch(hcPermissions)
                 workoutViewModel.resetSyncState()
             }
@@ -81,10 +90,11 @@ fun HomeScreen(
             }
             is WorkoutSyncState.Error -> {
                 val error = (workoutSyncState as WorkoutSyncState.Error).message
+                android.util.Log.e("Healthio", "Sync Error: $error")
                 if (error.contains("NOT installed", ignoreCase = true) || error.contains("Code 1") || error.contains("Code 2")) {
                     showInstallHCDialog = true
                 } else {
-                    Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Sync Error: $error", Toast.LENGTH_LONG).show()
                 }
                 workoutViewModel.resetSyncState()
             }
@@ -92,7 +102,7 @@ fun HomeScreen(
         }
     }
 
-    // Dialogs
+    // Dialogs (Feedback, Manual Entry, Workout, Install)
     if (uiState.showFeedbackDialog) {
         FastCompletedDialog(
             duration = uiState.completedDuration,
