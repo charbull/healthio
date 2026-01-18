@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.healthio.ui.components.FastCompletedDialog
 import com.healthio.ui.components.FluxTimer
+import com.healthio.ui.components.ManualEntryTypeDialog
 import com.healthio.ui.settings.SettingsViewModel
 import java.util.Calendar
 
@@ -32,6 +33,11 @@ fun HomeScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    // State for Manual Entry Flow
+    var showEntryTypeDialog by remember { mutableStateOf(false) }
+    var isLoggingCompletedFast by remember { mutableStateOf(false) }
+    var tempStartTime by remember { mutableStateOf(0L) }
+
     // Dialog Integration
     if (uiState.showFeedbackDialog) {
         FastCompletedDialog(
@@ -44,41 +50,63 @@ fun HomeScreen(
         )
     }
 
-    // Calendar for picking date/time
-    val calendar = Calendar.getInstance()
-
-    // Time Picker
-    val timePickerDialog = TimePickerDialog(
-        context,
-        { _, hourOfDay, minute ->
-            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-            calendar.set(Calendar.MINUTE, minute)
-            
-            val selectedTime = calendar.timeInMillis
-            val now = System.currentTimeMillis()
-            
-            viewModel.startFastAt(if (selectedTime > now) now else selectedTime)
-        },
-        calendar.get(Calendar.HOUR_OF_DAY),
-        calendar.get(Calendar.MINUTE),
-        false 
-    )
-
-    // Date Picker
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            calendar.set(Calendar.YEAR, year)
-            calendar.set(Calendar.MONTH, month)
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-            timePickerDialog.show()
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
-    
-    datePickerDialog.datePicker.maxDate = System.currentTimeMillis()
+    if (showEntryTypeDialog) {
+        ManualEntryTypeDialog(
+            onDismiss = { showEntryTypeDialog = false },
+            onOngoingSelected = {
+                showEntryTypeDialog = false
+                isLoggingCompletedFast = false
+                // Trigger Start Date Picker
+                val calendar = Calendar.getInstance()
+                DatePickerDialog(context, { _, year, month, day ->
+                    calendar.set(year, month, day)
+                    // Trigger Start Time Picker
+                    TimePickerDialog(context, { _, hour, minute ->
+                        calendar.set(Calendar.HOUR_OF_DAY, hour)
+                        calendar.set(Calendar.MINUTE, minute)
+                        val time = calendar.timeInMillis
+                        // Clamp future times for start
+                        val now = System.currentTimeMillis()
+                        viewModel.startFastAt(if (time > now) now else time)
+                    }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
+                }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+            },
+            onCompletedSelected = {
+                showEntryTypeDialog = false
+                isLoggingCompletedFast = true
+                // Trigger Start Date Picker
+                val calendar = Calendar.getInstance()
+                DatePickerDialog(context, { _, year, month, day ->
+                    calendar.set(year, month, day)
+                    // Trigger Start Time Picker
+                    TimePickerDialog(context, { _, hour, minute ->
+                        calendar.set(Calendar.HOUR_OF_DAY, hour)
+                        calendar.set(Calendar.MINUTE, minute)
+                        tempStartTime = calendar.timeInMillis
+                        
+                        // Now Trigger End Date Picker
+                        val endCalendar = Calendar.getInstance()
+                        // Default to same day
+                        endCalendar.timeInMillis = tempStartTime
+                        
+                        DatePickerDialog(context, { _, endYear, endMonth, endDay ->
+                            endCalendar.set(endYear, endMonth, endDay)
+                            // Trigger End Time Picker
+                            TimePickerDialog(context, { _, endHour, endMinute ->
+                                endCalendar.set(Calendar.HOUR_OF_DAY, endHour)
+                                endCalendar.set(Calendar.MINUTE, endMinute)
+                                val endTime = endCalendar.timeInMillis
+                                
+                                viewModel.logPastFast(tempStartTime, endTime)
+                                onNavigateToStats() // Go to stats to see the new log
+                            }, endCalendar.get(Calendar.HOUR_OF_DAY), endCalendar.get(Calendar.MINUTE), false).show()
+                        }, endCalendar.get(Calendar.YEAR), endCalendar.get(Calendar.MONTH), endCalendar.get(Calendar.DAY_OF_MONTH)).show()
+                        
+                    }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
+                }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -209,9 +237,9 @@ fun HomeScreen(
                     )
                 }
                 
-                TextButton(onClick = { datePickerDialog.show() }) {
+                TextButton(onClick = { showEntryTypeDialog = true }) {
                     Text(
-                        text = "Start from specific time...",
+                        text = "Manual Entry / Log Past Fast...",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )

@@ -143,6 +143,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun logPastFast(startTime: Long, endTime: Long) {
+        if (endTime <= startTime) return // Basic validation
+        viewModelScope.launch {
+            repository.logCompletedFast(startTime, endTime)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
