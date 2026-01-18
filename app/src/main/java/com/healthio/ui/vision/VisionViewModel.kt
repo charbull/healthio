@@ -42,10 +42,10 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             val result = repository.analyzeImage(bitmap, apiKey)
-            if (result != null) {
-                _state.value = VisionState.Success(result)
-            } else {
-                _state.value = VisionState.Error("Failed to analyze image.")
+            result.onSuccess { analysis ->
+                _state.value = VisionState.Success(analysis)
+            }.onFailure { exception ->
+                _state.value = VisionState.Error("AI Error: ${exception.localizedMessage}")
             }
         }
     }

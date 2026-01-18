@@ -9,9 +9,10 @@ import kotlinx.coroutines.withContext
 
 class GeminiRepository {
 
-    suspend fun analyzeImage(bitmap: Bitmap, apiKey: String): FoodAnalysis? = withContext(Dispatchers.IO) {
+    suspend fun analyzeImage(bitmap: Bitmap, apiKey: String): Result<FoodAnalysis> = withContext(Dispatchers.IO) {
+        // Try specific version if generic alias fails
         val model = GenerativeModel(
-            modelName = "gemini-1.5-flash",
+            modelName = "gemini-1.5-flash-001",
             apiKey = apiKey
         )
 
@@ -34,10 +35,16 @@ class GeminiRepository {
             )
             
             val json = response.text?.replace("```json", "")?.replace("```", "")?.trim()
-            Gson().fromJson(json, FoodAnalysis::class.java)
+            val analysis = Gson().fromJson(json, FoodAnalysis::class.java)
+            
+            if (analysis != null) {
+                Result.success(analysis)
+            } else {
+                Result.failure(Exception("Failed to parse AI response"))
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            Result.failure(e)
         }
     }
 }
