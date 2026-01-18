@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit
 sealed class WorkoutSyncState {
     object Idle : WorkoutSyncState()
     object Syncing : WorkoutSyncState()
+    object NeedsPermission : WorkoutSyncState()
     data class Success(val count: Int) : WorkoutSyncState()
     data class Error(val message: String) : WorkoutSyncState()
 }
@@ -33,42 +34,34 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun fetchFromHealthConnect() {
         viewModelScope.launch {
             _syncState.value = WorkoutSyncState.Syncing
-            val sdkStatus = HealthConnectClient.getSdkStatus(context)
-            android.util.Log.d("Healthio", "Health Connect SDK Status: $sdkStatus")
             
-            if (sdkStatus == HealthConnectClient.SDK_UNAVAILABLE) {
-                _syncState.value = WorkoutSyncState.Error("Health Connect is NOT installed. Please install it to sync Garmin data.")
-                return@launch
-            }
+            val status = healthManager.getSdkStatus()
+            android.util.Log.d("Healthio", "Health Connect SDK Status: $status")
             
-            if (sdkStatus != HealthConnectClient.SDK_AVAILABLE) {
-                _syncState.value = WorkoutSyncState.Error("Health Connect is not ready (Status: $sdkStatus)")
+            if (status != HealthConnectClient.SDK_AVAILABLE) {
+                val msg = when (status) {
+                    HealthConnectClient.SDK_UNAVAILABLE -> "NOT installed (Code 1)"
+                    HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> "Update Required (Code 2)"
+                    else -> "SDK Not Ready (Code $status)"
+                }
+                _syncState.value = WorkoutSyncState.Error(msg)
                 return@launch
             }
 
-            android.util.Log.d("Healthio", "Starting Health Connect Fetch...")
             try {
                 if (!healthManager.hasPermissions()) {
-                    android.util.Log.w("Healthio", "Permissions missing!")
-                    _syncState.value = WorkoutSyncState.Error("Permission Denied. Please enable Healthio in Health Connect settings to sync data.")
+                    android.util.Log.d("Healthio", "Permissions missing, setting NeedsPermission state")
+                    _syncState.value = WorkoutSyncState.NeedsPermission
                     return@launch
                 }
 
+                android.util.Log.d("Healthio", "Permissions present, starting fetch")
                 val now = Instant.now()
                 val startTime = now.minus(7, ChronoUnit.DAYS)
-                android.util.Log.d("Healthio", "Fetching records since $startTime")
-                
                 val hcWorkouts = healthManager.fetchWorkouts(startTime, now)
-                android.util.Log.d("Healthio", "Found ${hcWorkouts.size} sessions in Health Connect")
                 
-                if (hcWorkouts.isEmpty()) {
-                    _syncState.value = WorkoutSyncState.Success(0)
-                    return@launch
-                }
-
                 val existingIds = repository.getImportedExternalIds()
                 val newWorkouts = hcWorkouts.filter { it.externalId !in existingIds }
-                android.util.Log.d("Healthio", "New workouts to import: ${newWorkouts.size}")
 
                 newWorkouts.forEach { hc ->
                     repository.logWorkout(

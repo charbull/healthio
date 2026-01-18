@@ -19,10 +19,17 @@ data class HCWorkout(
 )
 
 class HealthConnectManager(private val context: Context) {
-    private val healthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
+    
+    fun getSdkStatus(): Int {
+        return HealthConnectClient.getSdkStatus(context)
+    }
 
-    fun isAvailable(): Boolean {
-        return HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
+    private fun getClient(): HealthConnectClient? {
+        return if (getSdkStatus() == HealthConnectClient.SDK_AVAILABLE) {
+            HealthConnectClient.getOrCreate(context)
+        } else {
+            null
+        }
     }
 
     val permissions = setOf(
@@ -31,26 +38,27 @@ class HealthConnectManager(private val context: Context) {
     )
 
     suspend fun hasPermissions(): Boolean {
-        val granted = healthConnectClient.permissionController.getGrantedPermissions()
+        val client = getClient() ?: return false
+        val granted = client.permissionController.getGrantedPermissions()
         return granted.containsAll(permissions)
     }
 
     suspend fun fetchWorkouts(startTime: Instant, endTime: Instant): List<HCWorkout> {
+        val client = getClient() ?: return emptyList()
         if (!hasPermissions()) return emptyList()
         
         val sessionRequest = ReadRecordsRequest(
             recordType = ExerciseSessionRecord::class,
             timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
         )
-        val sessions = healthConnectClient.readRecords(sessionRequest).records
+        val sessions = client.readRecords(sessionRequest).records
         
         return sessions.map { session ->
-            // Try to find calories for this session's time range
             val calorieRequest = ReadRecordsRequest(
                 recordType = TotalCaloriesBurnedRecord::class,
                 timeRangeFilter = TimeRangeFilter.between(session.startTime, session.endTime)
             )
-            val calories = healthConnectClient.readRecords(calorieRequest).records
+            val calories = client.readRecords(calorieRequest).records
                 .sumOf { it.energy.inKilocalories.toInt() }
             
             HCWorkout(
