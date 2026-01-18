@@ -163,14 +163,15 @@ fun HomeScreen(
                         }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "HEALTHIO",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 4.sp
-                        )
-                    )
-                }
+                                    Text(
+                                        text = "HEALTHIO",
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                            letterSpacing = 2.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )                }
                 Row {
                     IconButton(onClick = onNavigateToStats) {
                         Icon(imageVector = Icons.Default.DateRange, contentDescription = "History")

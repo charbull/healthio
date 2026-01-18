@@ -138,6 +138,34 @@ fun SettingsScreen(
                 }
             }
 
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Base Daily Calories Burned (BMR)",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        text = "Calories you burn naturally per day without extra exercise.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    OutlinedTextField(
+                        value = uiState.baseDailyBurn.toString(),
+                        onValueChange = { viewModel.setBaseBurn(it.toIntOrNull() ?: 0) },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        singleLine = true
+                    )
+                }
+            }
+
             Text(
                 text = "AI Configuration",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),

@@ -5,12 +5,15 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthio.core.data.FastingRepository
 import com.healthio.core.data.QuotesRepository
+import com.healthio.core.data.dataStore
+import com.healthio.ui.settings.SettingsViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -33,13 +36,15 @@ data class HomeUiState(
     val completedDuration: String = "",
     val feedbackQuote: String = "",
     val todayCalories: Int = 0,
-    val todayBurnedCalories: Int = 0 // New field
+    val todayBurnedCalories: Int = 0,
+    val baseDailyBurn: Int = 1800
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = FastingRepository(application)
     private val mealRepository = MealRepository(application)
     private val workoutRepository = WorkoutRepository(application)
+    private val context = application.applicationContext
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -49,38 +54,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
+            val baseBurnFlow = context.dataStore.data.map { it[SettingsViewModel.BASE_DAILY_BURN] ?: 1800 }
+            
             combine(
                 repository.isFasting, 
                 repository.startTime,
                 mealRepository.getTodayCalories(),
-                workoutRepository.getTodayBurnedCalories()
-            ) { isFasting, startTime, calories, burned ->
-                Quadruple(isFasting, startTime, calories, burned)
-            }.collect { (isFasting, startTime, calories, burned) ->
-                updateState(isFasting, startTime, calories, burned)
+                workoutRepository.getTodayBurnedCalories(),
+                baseBurnFlow
+            ) { isFasting, startTime, calories, burned, baseBurn ->
+                Pentuple(isFasting, startTime, calories, burned, baseBurn)
+            }.collect { (isFasting, startTime, calories, burned, baseBurn) ->
+                updateState(isFasting, startTime, calories, burned, baseBurn)
             }
         }
         startTimer()
     }
 
-    private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?, burned: Int?) {
+    private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?, burned: Int?, baseBurn: Int) {
         _uiState.value = _uiState.value.copy(
             timerState = if (isFasting) TimerState.FASTING else TimerState.EATING,
             startTime = startTime,
             todayCalories = calories ?: 0,
-            todayBurnedCalories = burned ?: 0
+            todayBurnedCalories = (burned ?: 0) + baseBurn, // Total burn = Active + Base
+            baseDailyBurn = baseBurn
         )
         calculateProgress()
     }
 
-    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+    data class Pentuple<A, B, C, D, E>(val first: A, val second: B, val third: C, val fourth: D, val fifth: E)
 
     private fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (isActive) {
                 calculateProgress()
-                delay(1000) // Update every second
+                delay(1000)
             }
         }
     }
@@ -91,9 +100,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         
         if (currentState.timerState == TimerState.FASTING && currentState.startTime != null) {
             val elapsed = now - currentState.startTime
-            // Progress for legacy/target goal logic (can be used for text feedback if needed)
             val progress = (elapsed.toFloat() / targetFastDuration).coerceIn(0f, 1f)
-            
             val timeString = formatDuration(elapsed)
             
             _uiState.value = currentState.copy(
@@ -102,7 +109,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 timeDisplay = timeString
             )
         } else {
-            // Eating state (or no active fast)
             _uiState.value = currentState.copy(
                 progress = 0f,
                 elapsedMillis = 0L,
@@ -160,7 +166,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun logPastFast(startTime: Long, endTime: Long) {
-        if (endTime <= startTime) return // Basic validation
+        if (endTime <= startTime) return
         viewModelScope.launch {
             repository.logCompletedFast(startTime, endTime)
         }

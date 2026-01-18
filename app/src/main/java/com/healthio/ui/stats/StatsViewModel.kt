@@ -4,12 +4,15 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthio.core.data.FastingRepository
+import com.healthio.core.data.WorkoutRepository
 import com.healthio.core.database.FastingLog
+import com.healthio.core.database.WorkoutLog
 import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.entryOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -22,7 +25,8 @@ enum class TimeRange {
 }
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = FastingRepository(application)
+    private val fastingRepository = FastingRepository(application)
+    private val workoutRepository = WorkoutRepository(application) // Note: Need to add workoutHistory to Repo
 
     private val _timeRange = MutableStateFlow(TimeRange.Week)
     val timeRange: StateFlow<TimeRange> = _timeRange.asStateFlow()
@@ -32,14 +36,27 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _chartLabels = MutableStateFlow<List<String>>(emptyList())
     val chartLabels: StateFlow<List<String>> = _chartLabels.asStateFlow()
+    
+    private val _workoutCount = MutableStateFlow(0)
+    val workoutCount: StateFlow<Int> = _workoutCount.asStateFlow()
 
-    // Keep raw logs to re-aggregate
-    private var allLogs: List<FastingLog> = emptyList()
+    private var allFastingLogs: List<FastingLog> = emptyList()
+    private var allWorkoutLogs: List<WorkoutLog> = emptyList()
 
     init {
         viewModelScope.launch {
-            repository.fastingHistory.collect { history ->
-                allLogs = history
+            // I'll need to update WorkoutRepository to expose allWorkouts Flow
+            // For now, I'll use fasting logs and assume workout data is coming soon
+            fastingRepository.fastingHistory.collect { history ->
+                allFastingLogs = history
+                updateChartData(_timeRange.value)
+            }
+        }
+        
+        viewModelScope.launch {
+            // Mocking workout collection until Repo is updated
+            com.healthio.core.database.AppDatabase.getDatabase(application).workoutDao().getAllWorkouts().collect { workouts ->
+                allWorkoutLogs = workouts
                 updateChartData(_timeRange.value)
             }
         }
@@ -55,45 +72,35 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val today = LocalDate.now(zoneId)
         val entries = mutableListOf<ChartEntry>()
         val labels = mutableListOf<String>()
+        var count = 0
 
         when (range) {
             TimeRange.Week -> {
-                // Last 7 days (or Mon-Sun)
-                // Let's do Mon-Sun relative to current week or last 7 days?
-                // The previous impl was static "Mon".."Sun". Let's stick to that for consistency.
                 labels.addAll(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
-                
-                // Aggregation
-                val dailyMax = mutableMapOf<Int, Float>() // 1..7 -> Hours
-                
-                allLogs.forEach { log ->
+                val dailyMax = mutableMapOf<Int, Float>()
+                allFastingLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
-                    // Filter for this week? Or just last 7 days?
-                    // Simple: Last 7 days.
                     val daysDiff = ChronoUnit.DAYS.between(date, today)
                     if (daysDiff in 0..6) {
-                        val dayOfWeek = date.dayOfWeek.value // 1..7
+                        val dayOfWeek = date.dayOfWeek.value
                         val hours = (log.durationMillis / (1000f * 60 * 60)).coerceAtLeast(0f)
                         val currentMax = dailyMax[dayOfWeek] ?: 0f
                         if (hours > currentMax) dailyMax[dayOfWeek] = hours
                     }
                 }
+                for (i in 1..7) entries.add(entryOf(i - 1, dailyMax[i] ?: 0f))
                 
-                for (i in 1..7) {
-                    entries.add(entryOf(i - 1, dailyMax[i] ?: 0f))
+                count = allWorkoutLogs.count { 
+                    val date = Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate()
+                    ChronoUnit.DAYS.between(date, today) in 0..6
                 }
             }
             TimeRange.Month -> {
-                // Current Month (1..30/31)
                 val yearMonth = YearMonth.now(zoneId)
                 val daysInMonth = yearMonth.lengthOfMonth()
-                
-                // Labels: Show all days (1, 2, 3...)
                 for (d in 1..daysInMonth) labels.add(d.toString())
-                
                 val dailyMax = mutableMapOf<Int, Float>()
-                
-                allLogs.forEach { log ->
+                allFastingLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
                     if (YearMonth.from(date) == yearMonth) {
                         val day = date.dayOfMonth
@@ -102,41 +109,43 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                         if (hours > currentMax) dailyMax[day] = hours
                     }
                 }
+                for (i in 1..daysInMonth) entries.add(entryOf(i - 1, dailyMax[i] ?: 0f))
                 
-                for (i in 1..daysInMonth) {
-                    entries.add(entryOf(i - 1, dailyMax[i] ?: 0f))
+                count = allWorkoutLogs.count { 
+                    val date = Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate()
+                    YearMonth.from(date) == yearMonth
                 }
             }
             TimeRange.Year -> {
-                // Jan..Dec
                 labels.addAll(listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"))
-                
                 val monthlyTotal = mutableMapOf<Int, Float>()
                 val monthlyCount = mutableMapOf<Int, Int>()
-                
                 val currentYear = today.year
-                
-                allLogs.forEach { log ->
+                allFastingLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
                     if (date.year == currentYear) {
-                        val month = date.monthValue // 1..12
+                        val month = date.monthValue
                         val hours = (log.durationMillis / (1000f * 60 * 60)).coerceAtLeast(0f)
                         monthlyTotal[month] = (monthlyTotal[month] ?: 0f) + hours
                         monthlyCount[month] = (monthlyCount[month] ?: 0) + 1
                     }
                 }
-                
                 for (i in 1..12) {
-                    // Average
                     val total = monthlyTotal[i] ?: 0f
-                    val count = monthlyCount[i] ?: 1
-                    val avg = if (count > 0) total / count else 0f
+                    val c = monthlyCount[i] ?: 1
+                    val avg = if (c > 0) total / c else 0f
                     entries.add(entryOf(i - 1, avg))
+                }
+                
+                count = allWorkoutLogs.count { 
+                    val date = Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate()
+                    date.year == currentYear
                 }
             }
         }
         
         _chartEntries.value = entries
         _chartLabels.value = labels
+        _workoutCount.value = count
     }
 }

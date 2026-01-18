@@ -22,6 +22,7 @@ fun StatsScreen(
     val timeRange by viewModel.timeRange.collectAsState()
     val chartEntries by viewModel.chartEntries.collectAsState()
     val chartLabels by viewModel.chartLabels.collectAsState()
+    val workoutCount by viewModel.workoutCount.collectAsState()
 
     Scaffold(
         topBar = {
@@ -78,6 +79,30 @@ fun StatsScreen(
                         .fillMaxWidth()
                         .height(300.dp)
                 )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Workout Count Summary
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Exercises",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Text(
+                            text = "$workoutCount sessions",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
             }
         }
     }
