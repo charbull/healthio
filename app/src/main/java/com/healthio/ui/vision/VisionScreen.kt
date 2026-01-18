@@ -4,7 +4,12 @@ import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -27,12 +32,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
+import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -51,6 +58,16 @@ fun VisionScreen(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted -> hasPermission = granted }
     )
+    
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val bitmap = uriToBitmap(context, uri)
+            val resized = resizeBitmap(bitmap, 1024)
+            viewModel.onImageCaptured(resized)
+        }
+    }
 
     LaunchedEffect(Unit) {
         launcher.launch(Manifest.permission.CAMERA)
@@ -76,38 +93,41 @@ fun VisionScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (hasPermission) {
-                when (state) {
-                    is VisionState.Idle -> {
-                        CameraContent(
-                            onImageCaptured = { bitmap -> viewModel.onImageCaptured(bitmap) }
-                        )
-                    }
-                    is VisionState.Review -> {
-                        val bitmap = (state as VisionState.Review).bitmap
-                        ReviewContent(
-                            bitmap = bitmap,
-                            onAnalyze = { contextText -> viewModel.analyzeImage(contextText) },
-                            onRetake = { viewModel.reset() }
-                        )
-                    }
-                    is VisionState.Analyzing -> {
-                        LoadingContent()
-                    }
-                    is VisionState.Success -> {
-                        val result = (state as VisionState.Success).analysis
-                        ResultContent(result)
-                    }
-                    is VisionState.Error -> {
-                        val error = (state as VisionState.Error).message
-                        ErrorContent(error, onRetry = { viewModel.reset() })
-                    }
+            // We allow gallery access even without camera permission if needed, but for simplicity keeping nested
+            // Actually, let's allow it even if camera permission denied?
+            // But 'hasPermission' guards the whole block.
+            // Let's modify logic to allow gallery always.
+            
+            when (state) {
+                is VisionState.Idle -> {
+                    CameraContent(
+                        hasPermission = hasPermission,
+                        onImageCaptured = { bitmap -> viewModel.onImageCaptured(bitmap) },
+                        onGalleryClick = { 
+                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                        onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
+                    )
                 }
-            } else {
-                Text(
-                    "Camera permission required.",
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                is VisionState.Review -> {
+                    val bitmap = (state as VisionState.Review).bitmap
+                    ReviewContent(
+                        bitmap = bitmap,
+                        onAnalyze = { contextText -> viewModel.analyzeImage(contextText) },
+                        onRetake = { viewModel.reset() }
+                    )
+                }
+                is VisionState.Analyzing -> {
+                    LoadingContent()
+                }
+                is VisionState.Success -> {
+                    val result = (state as VisionState.Success).analysis
+                    ResultContent(result)
+                }
+                is VisionState.Error -> {
+                    val error = (state as VisionState.Error).message
+                    ErrorContent(error, onRetry = { viewModel.reset() })
+                }
             }
         }
     }
@@ -193,45 +213,95 @@ fun LoadingContent() {
 }
 
 @Composable
-fun CameraContent(onImageCaptured: (Bitmap) -> Unit) {
+fun CameraContent(
+    hasPermission: Boolean,
+    onImageCaptured: (Bitmap) -> Unit,
+    onGalleryClick: () -> Unit,
+    onRequestPermission: () -> Unit
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val imageCapture = remember { ImageCapture.Builder().build() }
     val previewView = remember { PreviewView(context) }
 
-    LaunchedEffect(Unit) {
-        val cameraProvider = context.getCameraProvider()
-        val preview = Preview.Builder().build()
-        preview.setSurfaceProvider(previewView.surfaceProvider)
-        
-        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-        
-        try {
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector,
-                preview,
-                imageCapture
-            )
-        } catch (exc: Exception) {
-            // Log error
+    if (hasPermission) {
+        LaunchedEffect(Unit) {
+            val cameraProvider = context.getCameraProvider()
+            val preview = Preview.Builder().build()
+            preview.setSurfaceProvider(previewView.surfaceProvider)
+            
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
+            } catch (exc: Exception) {
+                // Log error
+            }
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView({ previewView }, modifier = Modifier.fillMaxSize())
+        if (hasPermission) {
+            AndroidView({ previewView }, modifier = Modifier.fillMaxSize())
+        } else {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Camera permission required.")
+                Button(onClick = onRequestPermission) {
+                    Text("Grant Permission")
+                }
+            }
+        }
         
-        Button(
-            onClick = {
-                takePhoto(context, imageCapture, onImageCaptured)
-            },
+        // Controls
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(32.dp)
-                .height(64.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("SNAP")
+            // Gallery Button
+            FloatingActionButton(
+                onClick = onGalleryClick,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Icon(
+                    painter = painterResource(android.R.drawable.ic_menu_gallery), // Using system icon
+                    contentDescription = "Gallery"
+                )
+            }
+            
+            // Snap Button (Only if has permission)
+            if (hasPermission) {
+                FloatingActionButton(
+                    onClick = {
+                        takePhoto(context, imageCapture, onImageCaptured)
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(72.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(android.R.drawable.ic_menu_camera),
+                        contentDescription = "Snap",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.size(72.dp)) // Placeholder
+            }
+            
+            // Spacer to balance layout
+            Spacer(modifier = Modifier.size(56.dp))
         }
     }
 }
@@ -379,6 +449,18 @@ private fun resizeBitmap(source: Bitmap, maxLength: Int): Bitmap {
         }
     } catch (e: Exception) {
         return source
+    }
+}
+
+private fun uriToBitmap(context: Context, uri: Uri): Bitmap {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+            decoder.isMutableRequired = true // Important for resizing sometimes
+        }
+    } else {
+        @Suppress("DEPRECATION")
+        MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
     }
 }
 
