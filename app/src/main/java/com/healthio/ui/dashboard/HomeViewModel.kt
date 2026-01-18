@@ -17,6 +17,7 @@ import java.time.Duration
 import java.util.Locale
 
 import com.healthio.core.data.MealRepository
+import com.healthio.core.data.WorkoutRepository
 
 enum class TimerState {
     FASTING, EATING
@@ -31,12 +32,14 @@ data class HomeUiState(
     val showFeedbackDialog: Boolean = false,
     val completedDuration: String = "",
     val feedbackQuote: String = "",
-    val todayCalories: Int = 0 // New field
+    val todayCalories: Int = 0,
+    val todayBurnedCalories: Int = 0 // New field
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = FastingRepository(application)
     private val mealRepository = MealRepository(application)
+    private val workoutRepository = WorkoutRepository(application)
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -49,24 +52,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 repository.isFasting, 
                 repository.startTime,
-                mealRepository.getTodayCalories()
-            ) { isFasting, startTime, calories ->
-                Triple(isFasting, startTime, calories)
-            }.collect { (isFasting, startTime, calories) ->
-                updateState(isFasting, startTime, calories)
+                mealRepository.getTodayCalories(),
+                workoutRepository.getTodayBurnedCalories()
+            ) { isFasting, startTime, calories, burned ->
+                Quadruple(isFasting, startTime, calories, burned)
+            }.collect { (isFasting, startTime, calories, burned) ->
+                updateState(isFasting, startTime, calories, burned)
             }
         }
         startTimer()
     }
 
-    private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?) {
+    private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?, burned: Int?) {
         _uiState.value = _uiState.value.copy(
             timerState = if (isFasting) TimerState.FASTING else TimerState.EATING,
             startTime = startTime,
-            todayCalories = calories ?: 0
+            todayCalories = calories ?: 0,
+            todayBurnedCalories = burned ?: 0
         )
         calculateProgress()
     }
+
+    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
     private fun startTimer() {
         timerJob?.cancel()

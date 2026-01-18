@@ -2,6 +2,8 @@ package com.healthio.ui.dashboard
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -13,14 +15,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.healthio.ui.components.AddWorkoutDialog
 import com.healthio.ui.components.FastCompletedDialog
 import com.healthio.ui.components.FluxTimer
 import com.healthio.ui.components.ManualEntryTypeDialog
 import com.healthio.ui.settings.SettingsViewModel
+import com.healthio.ui.workouts.WorkoutSyncState
+import com.healthio.ui.workouts.WorkoutViewModel
 import java.util.Calendar
 
 @Composable
@@ -29,18 +36,43 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToVision: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
-    settingsViewModel: SettingsViewModel = viewModel()
+    settingsViewModel: SettingsViewModel = viewModel(),
+    workoutViewModel: WorkoutViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val settingsState by settingsViewModel.uiState.collectAsState()
+    val workoutSyncState by workoutViewModel.syncState.collectAsState()
     val context = LocalContext.current
 
-    // State for Manual Entry Flow
+    // State for Dialogs
     var showEntryTypeDialog by remember { mutableStateOf(false) }
-    var isLoggingCompletedFast by remember { mutableStateOf(false) }
+    var showWorkoutDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
-    // Dialog Integration
+    // Health Connect Permission Launcher
+    val permissionsLauncher = rememberLauncherForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        if (granted.containsAll(setOf(
+            androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.ExerciseSessionRecord::class),
+            androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.TotalCaloriesBurnedRecord::class)
+        ))) {
+            workoutViewModel.fetchFromHealthConnect()
+        }
+    }
+
+    // Sync State Feedback
+    LaunchedEffect(workoutSyncState) {
+        if (workoutSyncState is WorkoutSyncState.Success) {
+            Toast.makeText(context, "Imported ${(workoutSyncState as WorkoutSyncState.Success).count} workouts", Toast.LENGTH_SHORT).show()
+            workoutViewModel.resetSyncState()
+        } else if (workoutSyncState is WorkoutSyncState.Error) {
+            Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Error).message, Toast.LENGTH_LONG).show()
+            workoutViewModel.resetSyncState()
+        }
+    }
+
+    // Dialogs
     if (uiState.showFeedbackDialog) {
         FastCompletedDialog(
             duration = uiState.completedDuration,
@@ -57,7 +89,6 @@ fun HomeScreen(
             onDismiss = { showEntryTypeDialog = false },
             onOngoingSelected = {
                 showEntryTypeDialog = false
-                isLoggingCompletedFast = false
                 val calendar = Calendar.getInstance()
                 DatePickerDialog(context, { _, year, month, day ->
                     calendar.set(year, month, day)
@@ -72,7 +103,6 @@ fun HomeScreen(
             },
             onCompletedSelected = {
                 showEntryTypeDialog = false
-                isLoggingCompletedFast = true
                 val calendar = Calendar.getInstance()
                 DatePickerDialog(context, { _, year, month, day ->
                     calendar.set(year, month, day)
@@ -80,24 +110,35 @@ fun HomeScreen(
                         calendar.set(Calendar.HOUR_OF_DAY, hour)
                         calendar.set(Calendar.MINUTE, minute)
                         tempStartTime = calendar.timeInMillis
-                        
                         val endCalendar = Calendar.getInstance()
                         endCalendar.timeInMillis = tempStartTime
-                        
                         DatePickerDialog(context, { _, endYear, endMonth, endDay ->
                             endCalendar.set(endYear, endMonth, endDay)
                             TimePickerDialog(context, { _, endHour, endMinute ->
                                 endCalendar.set(Calendar.HOUR_OF_DAY, endHour)
                                 endCalendar.set(Calendar.MINUTE, endMinute)
-                                val endTime = endCalendar.timeInMillis
-                                
-                                viewModel.logPastFast(tempStartTime, endTime)
+                                viewModel.logPastFast(tempStartTime, endCalendar.timeInMillis)
                                 onNavigateToStats() 
                             }, endCalendar.get(Calendar.HOUR_OF_DAY), endCalendar.get(Calendar.MINUTE), false).show()
                         }, endCalendar.get(Calendar.YEAR), endCalendar.get(Calendar.MONTH), endCalendar.get(Calendar.DAY_OF_MONTH)).show()
-                        
                     }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
                 }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+            }
+        )
+    }
+
+    if (showWorkoutDialog) {
+        AddWorkoutDialog(
+            onDismiss = { showWorkoutDialog = false },
+            onFetchFromHealthConnect = {
+                showWorkoutDialog = false
+                permissionsLauncher.launch(setOf(
+                    androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.ExerciseSessionRecord::class),
+                    androidx.health.connect.client.permission.HealthPermission.getReadPermission(androidx.health.connect.client.records.TotalCaloriesBurnedRecord::class)
+                ))
+            },
+            onManualLog = { type, duration, calories ->
+                workoutViewModel.logManualWorkout(type, duration, calories)
             }
         )
     }
@@ -108,10 +149,7 @@ fun HomeScreen(
                 onClick = onNavigateToVision,
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Scan Food"
-                )
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Scan Food")
             }
         }
     ) { paddingValues ->
@@ -126,9 +164,7 @@ fun HomeScreen(
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,9 +177,7 @@ fun HomeScreen(
                         )
                         if (settingsState.isConnected) {
                             Surface(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .align(Alignment.BottomEnd),
+                                modifier = Modifier.size(10.dp).align(Alignment.BottomEnd),
                                 shape = androidx.compose.foundation.shape.CircleShape,
                                 color = Color(0xFF4CAF50),
                                 border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.background)
@@ -159,70 +193,71 @@ fun HomeScreen(
                         )
                     )
                 }
-                
-                // Stats & Settings Buttons
                 Row {
                     IconButton(onClick = onNavigateToStats) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "History"
-                        )
+                        Icon(imageVector = Icons.Default.DateRange, contentDescription = "History")
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
-                        )
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             }
 
             // Center: Timer & Summary
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                FluxTimer(
-                    state = uiState.timerState,
-                    elapsedMillis = uiState.elapsedMillis
-                )
-                
+                FluxTimer(state = uiState.timerState, elapsedMillis = uiState.elapsedMillis)
                 Spacer(modifier = Modifier.size(32.dp))
-                
                 Text(
                     text = uiState.timeDisplay,
                     style = MaterialTheme.typography.displayMedium.copy(
-                        fontWeight = FontWeight.Light,
-                        fontFeatureSettings = "tnum"
+                        fontWeight = FontWeight.Light, fontFeatureSettings = "tnum"
                     )
                 )
-                
                 Text(
                     text = if (uiState.timerState == TimerState.FASTING) "FASTING TIME" else "READY",
                     color = if (uiState.timerState == TimerState.FASTING) Color(0xFF4CAF50) else Color(0xFFFF9800),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    )
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                 )
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                // Daily Nutrition Summary
+                // Summary Card: Intake - Burned = Net
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_my_calendar),
-                            contentDescription = "Nutrition",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Today: ${uiState.todayCalories} kcal",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Today's Energy",
+                                style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            IconButton(onClick = { showWorkoutDialog = true }, modifier = Modifier.size(24.dp)) {
+                                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Workout", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(text = "${uiState.todayCalories}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                                Text(text = "Intake", style = MaterialTheme.typography.labelSmall)
+                            }
+                            Text("-", style = MaterialTheme.typography.titleLarge)
+                            Column {
+                                Text(text = "${uiState.todayBurnedCalories}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFFE91E63))
+                                Text(text = "Burned", style = MaterialTheme.typography.labelSmall)
+                            }
+                            Text("=", style = MaterialTheme.typography.titleLarge)
+                            Column {
+                                val net = uiState.todayCalories - uiState.todayBurnedCalories
+                                Text(text = "$net", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = if (net <= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface)
+                                Text(text = "Net kcal", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
                 }
             }
@@ -236,45 +271,23 @@ fun HomeScreen(
                 if (uiState.timerState == TimerState.FASTING) {
                     Button(
                         onClick = { viewModel.requestEndFast() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        ),
+                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                         shape = MaterialTheme.shapes.medium
                     ) {
-                        Text(
-                            text = "END FAST",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
+                        Text(text = "END FAST", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
                 } else {
                     Button(
                         onClick = { viewModel.startFastNow() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
+                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = MaterialTheme.shapes.medium
                     ) {
-                        Text(
-                            text = "START FASTING NOW",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
+                        Text(text = "START FASTING NOW", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
-                    
                     TextButton(onClick = { showEntryTypeDialog = true }) {
-                        Text(
-                            text = "Manual Entry / Log Past Fast...",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        )
+                        Text(text = "Manual Entry / Log Past Fast...", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)))
                     }
                 }
             }

@@ -19,3 +19,4 @@
 | 03.3 | Gallery Import | **Completed** | [View Track](./tracks/track-03-3-gallery-import/index.md) |
 | 05 | Nutrition Data & Stats | **Completed** | [View Track](./tracks/track-05-nutrition-data/index.md) |
 | 05.1 | Nutrition Spreadsheet Sync | **Completed** | [View Track](./tracks/track-05-1-nutrition-sync/index.md) |
+| 06 | Workout Tracking & Health Connect | **Completed** | [View Track](./tracks/track-06-workouts/index.md) |

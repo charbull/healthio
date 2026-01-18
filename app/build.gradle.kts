@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.healthio"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.healthio"
@@ -81,8 +81,10 @@ dependencies {
         exclude(group = "org.apache.httpcomponents")
     }
     implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
-    implementation("com.google.code.gson:gson:2.10.1")
     
+    // Health Connect
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
+
     // Gemini AI
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 

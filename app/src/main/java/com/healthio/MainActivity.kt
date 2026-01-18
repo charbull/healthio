@@ -18,6 +18,7 @@ import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.stats.StatsScreen
 import com.healthio.ui.theme.HealthioTheme
 import com.healthio.ui.vision.VisionScreen
+import com.healthio.ui.workouts.WorkoutViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
                     
                     val homeViewModel: HomeViewModel = viewModel()
                     val settingsViewModel: SettingsViewModel = viewModel()
+                    val workoutViewModel: WorkoutViewModel = viewModel()
 
                     NavHost(navController = navController, startDestination = "home") {
                         composable("home") {
@@ -40,7 +42,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToSettings = { navController.navigate("settings") },
                                 onNavigateToVision = { navController.navigate("vision") },
                                 viewModel = homeViewModel,
-                                settingsViewModel = settingsViewModel
+                                settingsViewModel = settingsViewModel,
+                                workoutViewModel = workoutViewModel
                             )
                         }
                         composable("stats") {
