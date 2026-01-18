@@ -12,5 +12,6 @@ data class MealLog(
     val protein: Int,
     val carbs: Int,
     val fat: Int,
-    val imagePath: String? = null
+    val imagePath: String? = null,
+    val isSynced: Boolean = false
 )

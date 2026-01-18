@@ -25,4 +25,10 @@ interface MealDao {
 
     @Query("SELECT SUM(fat) FROM meal_logs WHERE timestamp >= :start AND timestamp < :end")
     fun getFatBetween(start: Long, end: Long): Flow<Int?>
+
+    @Query("SELECT * FROM meal_logs WHERE isSynced = 0")
+    suspend fun getUnsyncedMeals(): List<MealLog>
+
+    @Query("UPDATE meal_logs SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<Long>)
 }
