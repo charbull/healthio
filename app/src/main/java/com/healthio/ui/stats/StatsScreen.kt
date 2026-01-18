@@ -26,6 +26,7 @@ fun StatsScreen(
     val chartLabels by viewModel.chartLabels.collectAsState()
     val summaryTitle by viewModel.summaryTitle.collectAsState()
     val summaryValue by viewModel.summaryValue.collectAsState()
+    val workoutDetails by viewModel.workoutDetails.collectAsState()
 
     Scaffold(
         topBar = {
@@ -46,13 +47,12 @@ fun StatsScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Stat Type Toggle (Scrollable for many categories)
-            ScrollableTabRow(
+            // Stat Type Toggle
+            TabRow(
                 selectedTabIndex = statType.ordinal,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.primary,
-                edgePadding = 16.dp
+                contentColor = MaterialTheme.colorScheme.primary
             ) {
                 StatType.values().forEach { type ->
                     Tab(
@@ -60,14 +60,7 @@ fun StatsScreen(
                         onClick = { viewModel.setStatType(type) },
                         text = { 
                             Text(
-                                text = when(type) {
-                                    StatType.Fasting -> "Fast"
-                                    StatType.Workouts -> "Sessions"
-                                    StatType.Calories -> "Calories"
-                                    StatType.Macros -> "Macros"
-                                    StatType.WorkoutCalories -> "Burned"
-                                    StatType.WorkoutMinutes -> "Minutes"
-                                },
+                                text = type.name,
                                 style = MaterialTheme.typography.labelSmall
                             ) 
                         }
@@ -94,8 +87,6 @@ fun StatsScreen(
             val title = when (statType) {
                 StatType.Fasting -> "Fasting Time (Hours)"
                 StatType.Workouts -> "Exercises (Sessions)"
-                StatType.WorkoutCalories -> "Calories Burned (kcal)"
-                StatType.WorkoutMinutes -> "Exercise Time (min)"
                 StatType.Calories -> "Energy Intake (kcal)"
                 StatType.Macros -> "Macronutrients (Grams)"
             }
@@ -135,17 +126,30 @@ fun StatsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (statType == StatType.Workouts && workoutDetails != null) {
+                        Text(text = "Workout Summary", style = MaterialTheme.typography.labelMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            SummaryDetail("Sessions", "${workoutDetails?.sessions}")
+                            SummaryDetail("Burned", "${workoutDetails?.calories} kcal")
+                            SummaryDetail("Duration", "${workoutDetails?.minutes} min")
+                        }
+                    } else {
                         Text(text = summaryTitle, style = MaterialTheme.typography.labelMedium)
                         Text(text = summaryValue, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SummaryDetail(label: String, value: String) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f))
+        Text(text = value, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
     }
 }
 

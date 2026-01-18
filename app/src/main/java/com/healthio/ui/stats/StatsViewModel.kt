@@ -38,11 +38,17 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _chartLabels = MutableStateFlow<List<String>>(emptyList())
     val chartLabels: StateFlow<List<String>> = _chartLabels.asStateFlow()
     
+    // Detailed summary data for the bottom card
     private val _summaryTitle = MutableStateFlow("")
     val summaryTitle: StateFlow<String> = _summaryTitle.asStateFlow()
 
     private val _summaryValue = MutableStateFlow("")
     val summaryValue: StateFlow<String> = _summaryValue.asStateFlow()
+    
+    private val _workoutDetails = MutableStateFlow<WorkoutSummary?>(null)
+    val workoutDetails: StateFlow<WorkoutSummary?> = _workoutDetails.asStateFlow()
+
+    data class WorkoutSummary(val sessions: Int, val calories: Int, val minutes: Int)
 
     private var allFastingLogs: List<FastingLog> = emptyList()
     private var allWorkoutLogs: List<WorkoutLog> = emptyList()
@@ -94,6 +100,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val seriesList = mutableListOf<List<ChartEntry>>()
         val dailyValues = mutableMapOf<Int, Float>()
 
+        // Reset details
+        _workoutDetails.value = null
+
         when (type) {
             StatType.Fasting -> {
                 allFastingLogs.forEach { log ->
@@ -111,67 +120,54 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyValues[it] ?: 0f) })
-                _summaryTitle.value = "Consistency"
-                _summaryValue.value = "Fasting Active"
+                _summaryTitle.value = "Fasting"
+                _summaryValue.value = "Tracking consistency"
             }
             StatType.Workouts -> {
-                allWorkoutLogs.forEach { log ->
+                val currentWorkouts = allWorkoutLogs.filterWorkoutsIn(range, today)
+                currentWorkouts.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
-                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
+                    val (index, _) = getBucketIndex(date, range, today)
+                    dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
                 }
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyValues[it] ?: 0f) })
-                _summaryTitle.value = "Activity"
-                _summaryValue.value = "${allWorkoutLogs.countWorkoutsIn(range, today)} sessions"
-            }
-            StatType.WorkoutCalories -> {
-                allWorkoutLogs.forEach { log ->
-                    val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
-                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
-                }
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyValues[it] ?: 0f) })
-                _summaryTitle.value = "Energy Burned"
-                _summaryValue.value = "${allWorkoutLogs.filterWorkoutsIn(range, today).sumOf { it.calories }} kcal"
-            }
-            StatType.WorkoutMinutes -> {
-                allWorkoutLogs.forEach { log ->
-                    val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
-                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + log.durationMinutes.toFloat()
-                }
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyValues[it] ?: 0f) })
-                _summaryTitle.value = "Time Training"
-                _summaryValue.value = "${allWorkoutLogs.filterWorkoutsIn(range, today).sumOf { it.durationMinutes }} min"
+                
+                _workoutDetails.value = WorkoutSummary(
+                    sessions = currentWorkouts.size,
+                    calories = currentWorkouts.sumOf { it.calories },
+                    minutes = currentWorkouts.sumOf { it.durationMinutes }
+                )
+                _summaryTitle.value = "Workout Activity"
+                _summaryValue.value = "${currentWorkouts.size} sessions"
             }
             StatType.Calories -> {
-                allMealLogs.forEach { log ->
+                val currentMeals = allMealLogs.filterMealsIn(range, today)
+                currentMeals.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
-                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
+                    val (index, _) = getBucketIndex(date, range, today)
+                    dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
                 }
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyValues[it] ?: 0f) })
                 _summaryTitle.value = "Total Intake"
-                _summaryValue.value = "${allMealLogs.filterMealsIn(range, today).sumOf { it.calories }} kcal"
+                _summaryValue.value = "${currentMeals.sumOf { it.calories }} kcal"
             }
             StatType.Macros -> {
                 val protein = mutableMapOf<Int, Float>()
                 val carbs = mutableMapOf<Int, Float>()
                 val fat = mutableMapOf<Int, Float>()
-                allMealLogs.forEach { log ->
+                val currentMeals = allMealLogs.filterMealsIn(range, today)
+                currentMeals.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
-                    if (include) {
-                        protein[index] = (protein[index] ?: 0f) + log.protein.toFloat()
-                        carbs[index] = (carbs[index] ?: 0f) + log.carbs.toFloat()
-                        fat[index] = (fat[index] ?: 0f) + log.fat.toFloat()
-                    }
+                    val (index, _) = getBucketIndex(date, range, today)
+                    protein[index] = (protein[index] ?: 0f) + log.protein.toFloat()
+                    carbs[index] = (carbs[index] ?: 0f) + log.carbs.toFloat()
+                    fat[index] = (fat[index] ?: 0f) + log.fat.toFloat()
                 }
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, protein[it] ?: 0f) })
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, carbs[it] ?: 0f) })
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, fat[it] ?: 0f) })
-                _summaryTitle.value = "Protein Total"
-                _summaryValue.value = "${allMealLogs.filterMealsIn(range, today).sumOf { it.protein }}g"
+                _summaryTitle.value = "Nutrition"
+                _summaryValue.value = "${currentMeals.sumOf { it.calories }} kcal intake"
             }
         }
 
@@ -182,7 +178,6 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private fun List<WorkoutLog>.filterWorkoutsIn(range: TimeRange, today: LocalDate) = filter { 
         getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(ZoneId.systemDefault()).toLocalDate(), range, today).second 
     }
-    private fun List<WorkoutLog>.countWorkoutsIn(range: TimeRange, today: LocalDate) = filterWorkoutsIn(range, today).size
     
     private fun List<MealLog>.filterMealsIn(range: TimeRange, today: LocalDate) = filter { 
         getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(ZoneId.systemDefault()).toLocalDate(), range, today).second 
