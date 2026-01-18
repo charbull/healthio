@@ -21,7 +21,7 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 enum class TimeRange { Week, Month, Year }
-enum class StatType { Fasting, Workouts, Nutrition }
+enum class StatType { Fasting, Workouts, Calories, Macros }
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val fastingRepository = FastingRepository(application)
@@ -35,8 +35,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _statType = MutableStateFlow(StatType.Fasting)
     val statType: StateFlow<StatType> = _statType.asStateFlow()
 
-    private val _chartEntries = MutableStateFlow<List<ChartEntry>>(emptyList())
-    val chartEntries: StateFlow<List<ChartEntry>> = _chartEntries.asStateFlow()
+    private val _chartSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())
+    val chartSeries: StateFlow<List<List<ChartEntry>>> = _chartSeries.asStateFlow()
 
     private val _chartLabels = MutableStateFlow<List<String>>(emptyList())
     val chartLabels: StateFlow<List<String>> = _chartLabels.asStateFlow()
@@ -88,21 +88,20 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val zoneId = ZoneId.systemDefault()
         val today = LocalDate.now(zoneId)
         
-        val entries = mutableListOf<ChartEntry>()
         val labels = mutableListOf<String>()
-
         val labelList = when (range) {
             TimeRange.Week -> listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
             TimeRange.Month -> (1..YearMonth.now(zoneId).lengthOfMonth()).map { it.toString() }
             TimeRange.Year -> listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
         }
         labels.addAll(labelList)
-
         val bucketCount = labelList.size
-        val dailyValues = mutableMapOf<Int, Float>()
+
+        val seriesList = mutableListOf<List<ChartEntry>>()
 
         when (type) {
             StatType.Fasting -> {
+                val dailyValues = mutableMapOf<Int, Float>()
                 allFastingLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
                     val (index, include) = getBucketIndex(date, range, today)
@@ -111,29 +110,43 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                         dailyValues[index] = maxOf(dailyValues[index] ?: 0f, hours)
                     }
                 }
+                seriesList.add((0 until bucketCount).map { entryOf(it, dailyValues[it+1] ?: 0f) })
             }
             StatType.Workouts -> {
+                val dailyValues = mutableMapOf<Int, Float>()
                 allWorkoutLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = getBucketIndex(date, range, today)
-                    if (include) {
-                        dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
-                    }
+                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
                 }
+                seriesList.add((0 until bucketCount).map { entryOf(it, dailyValues[it+1] ?: 0f) })
             }
-            StatType.Nutrition -> {
+            StatType.Calories -> {
+                val dailyValues = mutableMapOf<Int, Float>()
+                allMealLogs.forEach { log ->
+                    val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
+                    val (index, include) = getBucketIndex(date, range, today)
+                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
+                }
+                seriesList.add((0 until bucketCount).map { entryOf(it, dailyValues[it+1] ?: 0f) })
+            }
+            StatType.Macros -> {
+                val protein = mutableMapOf<Int, Float>()
+                val carbs = mutableMapOf<Int, Float>()
+                val fat = mutableMapOf<Int, Float>()
                 allMealLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = getBucketIndex(date, range, today)
                     if (include) {
-                        dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
+                        protein[index] = (protein[index] ?: 0f) + log.protein.toFloat()
+                        carbs[index] = (carbs[index] ?: 0f) + log.carbs.toFloat()
+                        fat[index] = (fat[index] ?: 0f) + log.fat.toFloat()
                     }
                 }
+                seriesList.add((0 until bucketCount).map { entryOf(it, protein[it+1] ?: 0f) })
+                seriesList.add((0 until bucketCount).map { entryOf(it, carbs[it+1] ?: 0f) })
+                seriesList.add((0 until bucketCount).map { entryOf(it, fat[it+1] ?: 0f) })
             }
-        }
-
-        for (i in 0 until bucketCount) {
-            entries.add(entryOf(i, dailyValues[i+1] ?: 0f))
         }
 
         // Aggregate totals for info cards
@@ -149,7 +162,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             include
         }.sumOf { it.calories }
 
-        _chartEntries.value = entries
+        _chartSeries.value = seriesList
         _chartLabels.value = labels
     }
 

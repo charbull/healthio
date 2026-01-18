@@ -17,35 +17,48 @@ import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 
 @Composable
-fun FastingChart(
-    entries: List<ChartEntry>,
+fun HealthioChart(
+    series: List<List<ChartEntry>>,
     labels: List<String>,
     modifier: Modifier = Modifier
 ) {
-    val chartEntryModelProducer = remember(entries) { ChartEntryModelProducer(entries) }
+    if (series.isEmpty()) return
+    
+    val chartEntryModelProducer = remember(series) { ChartEntryModelProducer(series) }
     
     val horizontalAxisValueFormatter = AxisValueFormatter<AxisPosition.Horizontal.Bottom> { value, _ ->
         labels.getOrNull(value.toInt()) ?: ""
     }
 
+    // Define colors for series
+    val colors = listOf(
+        Color(0xFF4CAF50), // Green (Default/Protein in grouped)
+        Color(0xFFFFC107), // Yellow (Carbs)
+        Color(0xFFE91E63), // Pink (Fat)
+        Color(0xFF2196F3)  // Blue
+    )
+
+    // Adjust colors if it's the Macros view (3 series)
+    val columnColors = if (series.size == 3) {
+        listOf(Color(0xFF2196F3), Color(0xFFFFC107), Color(0xFFE91E63)) // P, C, F
+    } else {
+        listOf(colors[0])
+    }
+
     Chart(
         chart = columnChart(
-            columns = listOf(
+            columns = columnColors.map { color ->
                 lineComponent(
-                    color = Color(0xFF4CAF50),
-                    thickness = 12.dp, // Slightly thinner for monthly views
-                    shape = Shapes.roundedCornerShape(
-                        topLeftPercent = 50,
-                        topRightPercent = 50,
-                        bottomLeftPercent = 0,
-                        bottomRightPercent = 0
-                    )
+                    color = color,
+                    thickness = if (series.size > 1) 4.dp else 12.dp,
+                    shape = Shapes.roundedCornerShape(topLeftPercent = 50, topRightPercent = 50)
                 )
-            )
+            },
+            spacing = if (series.size > 1) 4.dp else 12.dp
         ),
         chartModelProducer = chartEntryModelProducer,
         startAxis = rememberStartAxis(
-            valueFormatter = { value, _ -> String.format("%.0fh", value) },
+            valueFormatter = { value, _ -> String.format("%.0f", value) },
             itemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Vertical.default(maxItemCount = 5)
         ),
         bottomAxis = rememberBottomAxis(
