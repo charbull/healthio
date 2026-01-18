@@ -17,3 +17,4 @@
 | 03.1 | Enhanced Smart Vision | **Completed** | [View Track](./tracks/track-03-1-enhanced-vision/index.md) |
 | 03.2 | Keto Alternatives Logic | **Completed** | [View Track](./tracks/track-03-2-keto-alternatives/index.md) |
 | 03.3 | Gallery Import | **Completed** | [View Track](./tracks/track-03-3-gallery-import/index.md) |
+| 05 | Nutrition Data & Stats | **Completed** | [View Track](./tracks/track-05-nutrition-data/index.md) |

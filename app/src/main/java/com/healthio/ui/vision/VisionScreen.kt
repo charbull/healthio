@@ -120,11 +120,13 @@ fun VisionScreen(
                 is VisionState.Analyzing -> {
                     LoadingContent()
                 }
-                is VisionState.Success -> {
-                    val result = (state as VisionState.Success).analysis
-                    ResultContent(result)
-                }
-                is VisionState.Error -> {
+                                    is VisionState.Success -> {
+                                        val result = (state as VisionState.Success).analysis
+                                        ResultContent(
+                                            analysis = result,
+                                            onSave = { viewModel.saveLog(result) }
+                                        )
+                                    }                is VisionState.Error -> {
                     val error = (state as VisionState.Error).message
                     ErrorContent(error, onRetry = { viewModel.reset() })
                 }
@@ -307,7 +309,10 @@ fun CameraContent(
 }
 
 @Composable
-fun ResultContent(analysis: com.healthio.core.ai.FoodAnalysis) {
+fun ResultContent(
+    analysis: com.healthio.core.ai.FoodAnalysis,
+    onSave: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -355,7 +360,7 @@ fun ResultContent(analysis: com.healthio.core.ai.FoodAnalysis) {
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().weight(1f), // Allow scrolling if needed, or flexible height
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Text(
@@ -363,6 +368,16 @@ fun ResultContent(analysis: com.healthio.core.ai.FoodAnalysis) {
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyLarge
             )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onSave,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Text("Save Log")
         }
     }
 }

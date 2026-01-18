@@ -16,23 +16,27 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.util.Locale
 
+import com.healthio.core.data.MealRepository
+
 enum class TimerState {
     FASTING, EATING
 }
 
 data class HomeUiState(
     val timerState: TimerState = TimerState.FASTING,
-    val progress: Float = 0f, // Deprecated, but keeping to avoid break if I miss something
-    val elapsedMillis: Long = 0L, // New field for 24h timer
+    val progress: Float = 0f,
+    val elapsedMillis: Long = 0L,
     val timeDisplay: String = "00:00:00",
     val startTime: Long? = null,
     val showFeedbackDialog: Boolean = false,
     val completedDuration: String = "",
-    val feedbackQuote: String = ""
+    val feedbackQuote: String = "",
+    val todayCalories: Int = 0 // New field
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = FastingRepository(application)
+    private val mealRepository = MealRepository(application)
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -42,19 +46,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            combine(repository.isFasting, repository.startTime) { isFasting, startTime ->
-                Pair(isFasting, startTime)
-            }.collect { (isFasting, startTime) ->
-                updateState(isFasting, startTime)
+            combine(
+                repository.isFasting, 
+                repository.startTime,
+                mealRepository.getTodayCalories()
+            ) { isFasting, startTime, calories ->
+                Triple(isFasting, startTime, calories)
+            }.collect { (isFasting, startTime, calories) ->
+                updateState(isFasting, startTime, calories)
             }
         }
         startTimer()
     }
 
-    private fun updateState(isFasting: Boolean, startTime: Long?) {
+    private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?) {
         _uiState.value = _uiState.value.copy(
             timerState = if (isFasting) TimerState.FASTING else TimerState.EATING,
-            startTime = startTime
+            startTime = startTime,
+            todayCalories = calories ?: 0
         )
         calculateProgress()
     }

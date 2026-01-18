@@ -58,16 +58,13 @@ fun HomeScreen(
             onOngoingSelected = {
                 showEntryTypeDialog = false
                 isLoggingCompletedFast = false
-                // Trigger Start Date Picker
                 val calendar = Calendar.getInstance()
                 DatePickerDialog(context, { _, year, month, day ->
                     calendar.set(year, month, day)
-                    // Trigger Start Time Picker
                     TimePickerDialog(context, { _, hour, minute ->
                         calendar.set(Calendar.HOUR_OF_DAY, hour)
                         calendar.set(Calendar.MINUTE, minute)
                         val time = calendar.timeInMillis
-                        // Clamp future times for start
                         val now = System.currentTimeMillis()
                         viewModel.startFastAt(if (time > now) now else time)
                     }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false).show()
@@ -76,31 +73,26 @@ fun HomeScreen(
             onCompletedSelected = {
                 showEntryTypeDialog = false
                 isLoggingCompletedFast = true
-                // Trigger Start Date Picker
                 val calendar = Calendar.getInstance()
                 DatePickerDialog(context, { _, year, month, day ->
                     calendar.set(year, month, day)
-                    // Trigger Start Time Picker
                     TimePickerDialog(context, { _, hour, minute ->
                         calendar.set(Calendar.HOUR_OF_DAY, hour)
                         calendar.set(Calendar.MINUTE, minute)
                         tempStartTime = calendar.timeInMillis
                         
-                        // Now Trigger End Date Picker
                         val endCalendar = Calendar.getInstance()
-                        // Default to same day
                         endCalendar.timeInMillis = tempStartTime
                         
                         DatePickerDialog(context, { _, endYear, endMonth, endDay ->
                             endCalendar.set(endYear, endMonth, endDay)
-                            // Trigger End Time Picker
                             TimePickerDialog(context, { _, endHour, endMinute ->
                                 endCalendar.set(Calendar.HOUR_OF_DAY, endHour)
                                 endCalendar.set(Calendar.MINUTE, endMinute)
                                 val endTime = endCalendar.timeInMillis
                                 
                                 viewModel.logPastFast(tempStartTime, endTime)
-                                onNavigateToStats() // Go to stats to see the new log
+                                onNavigateToStats() 
                             }, endCalendar.get(Calendar.HOUR_OF_DAY), endCalendar.get(Calendar.MINUTE), false).show()
                         }, endCalendar.get(Calendar.YEAR), endCalendar.get(Calendar.MONTH), endCalendar.get(Calendar.DAY_OF_MONTH)).show()
                         
@@ -185,7 +177,7 @@ fun HomeScreen(
                 }
             }
 
-            // Center: Timer
+            // Center: Timer & Summary
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 FluxTimer(
                     state = uiState.timerState,
@@ -210,6 +202,29 @@ fun HomeScreen(
                         letterSpacing = 2.sp
                     )
                 )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Daily Nutrition Summary
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_my_calendar),
+                            contentDescription = "Nutrition",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Today: ${uiState.todayCalories} kcal",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
             }
 
             // Action Buttons

@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthio.core.ai.FoodAnalysis
 import com.healthio.core.ai.GeminiRepository
+import com.healthio.core.data.MealRepository
+import com.healthio.core.database.MealLog
 import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.core.data.dataStore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,14 +19,15 @@ import kotlinx.coroutines.launch
 
 sealed class VisionState {
     object Idle : VisionState()
-    data class Review(val bitmap: Bitmap) : VisionState() // New state
+    data class Review(val bitmap: Bitmap) : VisionState()
     object Analyzing : VisionState()
     data class Success(val analysis: FoodAnalysis) : VisionState()
     data class Error(val message: String) : VisionState()
 }
 
 class VisionViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = GeminiRepository()
+    private val geminiRepository = GeminiRepository()
+    private val mealRepository = MealRepository(application)
     private val context = application.applicationContext
 
     private val _state = MutableStateFlow<VisionState>(VisionState.Idle)
@@ -51,12 +54,29 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
-            val result = repository.analyzeImage(bitmap, apiKey, userContext)
+            val result = geminiRepository.analyzeImage(bitmap, apiKey, userContext)
             result.onSuccess { analysis ->
                 _state.value = VisionState.Success(analysis)
             }.onFailure { exception ->
                 _state.value = VisionState.Error("AI Error: ${exception.localizedMessage}")
             }
+        }
+    }
+    
+    fun saveLog(analysis: FoodAnalysis) {
+        viewModelScope.launch {
+            mealRepository.logMeal(
+                MealLog(
+                    timestamp = System.currentTimeMillis(),
+                    foodName = analysis.foodName,
+                    calories = analysis.calories,
+                    protein = analysis.protein,
+                    carbs = analysis.carbs,
+                    fat = analysis.fat
+                )
+            )
+            // After saving, reset to Idle to scan again
+            _state.value = VisionState.Idle
         }
     }
     
