@@ -18,15 +18,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.healthio.ui.components.FastCompletedDialog
 import com.healthio.ui.components.FluxTimer
+import com.healthio.ui.settings.SettingsViewModel
 import java.util.Calendar
 
 @Composable
 fun HomeScreen(
     onNavigateToStats: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val settingsState by settingsViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     // Dialog Integration
@@ -54,7 +57,6 @@ fun HomeScreen(
             val selectedTime = calendar.timeInMillis
             val now = System.currentTimeMillis()
             
-            // Clamp to 'now' if user picks a future time
             viewModel.startFastAt(if (selectedTime > now) now else selectedTime)
         },
         calendar.get(Calendar.HOUR_OF_DAY),
@@ -69,7 +71,6 @@ fun HomeScreen(
             calendar.set(Calendar.YEAR, year)
             calendar.set(Calendar.MONTH, month)
             calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-            // After Date is picked, show Time Picker
             timePickerDialog.show()
         },
         calendar.get(Calendar.YEAR),
@@ -77,7 +78,6 @@ fun HomeScreen(
         calendar.get(Calendar.DAY_OF_MONTH)
     )
     
-    // Restrict future dates
     datePickerDialog.datePicker.maxDate = System.currentTimeMillis()
 
     Column(
@@ -96,12 +96,24 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = androidx.compose.ui.res.painterResource(id = com.healthio.R.drawable.ic_healthio_logo),
-                    contentDescription = "Logo",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(32.dp)
-                )
+                Box {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = com.healthio.R.drawable.ic_healthio_logo),
+                        contentDescription = "Logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    if (settingsState.isConnected) {
+                        Surface(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .align(Alignment.BottomEnd),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = Color(0xFF4CAF50),
+                            border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.background)
+                        ) {}
+                    }
+                }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "HEALTHIO",
@@ -142,7 +154,7 @@ fun HomeScreen(
                 text = uiState.timeDisplay,
                 style = MaterialTheme.typography.displayMedium.copy(
                     fontWeight = FontWeight.Light,
-                    fontFeatureSettings = "tnum" // Tabular numbers to prevent jumping
+                    fontFeatureSettings = "tnum"
                 )
             )
             
@@ -180,7 +192,6 @@ fun HomeScreen(
                     )
                 }
             } else {
-                // Not Fasting: Two Options
                 Button(
                     onClick = { viewModel.startFastNow() },
                     modifier = Modifier
