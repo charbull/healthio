@@ -22,11 +22,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _syncState = MutableStateFlow<WorkoutSyncState>(WorkoutSyncState.Idle)
     val syncState: StateFlow<WorkoutSyncState> = _syncState.asStateFlow()
 
-    fun logManualWorkout(type: String, duration: Int, calories: Int) {
+    fun logManualWorkout(type: String, duration: Int, calories: Int, timestamp: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             repository.logWorkout(
                 WorkoutLog(
-                    timestamp = System.currentTimeMillis(),
+                    timestamp = timestamp,
                     type = type,
                     calories = calories,
                     durationMinutes = duration,

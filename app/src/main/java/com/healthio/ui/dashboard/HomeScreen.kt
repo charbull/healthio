@@ -115,8 +115,8 @@ fun HomeScreen(
     if (showWorkoutDialog) {
         AddWorkoutDialog(
             onDismiss = { showWorkoutDialog = false },
-            onManualLog = { type, duration, calories ->
-                workoutViewModel.logManualWorkout(type, duration, calories)
+            onManualLog = { type, duration, calories, ts ->
+                workoutViewModel.logManualWorkout(type, duration, calories, ts)
             }
         )
     }
