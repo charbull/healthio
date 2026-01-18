@@ -48,7 +48,7 @@ fun StatsScreen(
         ) {
             // Stat Type Toggle
             TabRow(
-                selectedTabIndex = StatType.values().indexOf(statType),
+                selectedTabIndex = statType.ordinal,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.primary

@@ -20,9 +20,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
-enum class TimeRange { Week, Month, Year }
-enum class StatType { Fasting, Workouts, Calories, Macros }
-
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val fastingRepository = FastingRepository(application)
     private val db = AppDatabase.getDatabase(application)
@@ -88,47 +85,53 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val zoneId = ZoneId.systemDefault()
         val today = LocalDate.now(zoneId)
         
-        val labels = mutableListOf<String>()
-        val labelList = when (range) {
+        val labels = when (range) {
             TimeRange.Week -> listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
             TimeRange.Month -> (1..YearMonth.now(zoneId).lengthOfMonth()).map { it.toString() }
             TimeRange.Year -> listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
         }
-        labels.addAll(labelList)
-        val bucketCount = labelList.size
+        val bucketCount = labels.size
 
         val seriesList = mutableListOf<List<ChartEntry>>()
 
         when (type) {
             StatType.Fasting -> {
-                val dailyValues = mutableMapOf<Int, Float>()
+                val dailyMax = mutableMapOf<Int, Float>()
                 allFastingLogs.forEach { log ->
-                    val date = Instant.ofEpochMilli(log.endTime).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
-                    if (include) {
-                        val hours = (log.durationMillis / (1000f * 60 * 60)).coerceAtLeast(0f)
-                        dailyValues[index] = maxOf(dailyValues[index] ?: 0f, hours)
+                    var currentStart = Instant.ofEpochMilli(log.startTime).atZone(zoneId)
+                    val endDateTime = Instant.ofEpochMilli(log.endTime).atZone(zoneId)
+                    
+                    while (currentStart.isBefore(endDateTime)) {
+                        val endOfDay = currentStart.toLocalDate().plusDays(1).atStartOfDay(zoneId)
+                        val segmentEnd = if (endDateTime.isBefore(endOfDay)) endDateTime else endOfDay
+                        val durationHrs = ChronoUnit.MILLIS.between(currentStart, segmentEnd) / 3600000f
+                        
+                        val (index, include) = getBucketIndex(currentStart.toLocalDate(), range, today)
+                        if (include) {
+                            dailyMax[index] = maxOf(dailyMax[index] ?: 0f, durationHrs)
+                        }
+                        currentStart = segmentEnd
                     }
                 }
-                seriesList.add((0 until bucketCount).map { entryOf(it, dailyValues[it+1] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyMax[it] ?: 0f) })
             }
             StatType.Workouts -> {
-                val dailyValues = mutableMapOf<Int, Float>()
+                val counts = mutableMapOf<Int, Float>()
                 allWorkoutLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = getBucketIndex(date, range, today)
-                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + 1f
+                    if (include) counts[index] = (counts[index] ?: 0f) + 1f
                 }
-                seriesList.add((0 until bucketCount).map { entryOf(it, dailyValues[it+1] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, counts[it] ?: 0f) })
             }
             StatType.Calories -> {
-                val dailyValues = mutableMapOf<Int, Float>()
+                val totals = mutableMapOf<Int, Float>()
                 allMealLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = getBucketIndex(date, range, today)
-                    if (include) dailyValues[index] = (dailyValues[index] ?: 0f) + log.calories.toFloat()
+                    if (include) totals[index] = (totals[index] ?: 0f) + log.calories.toFloat()
                 }
-                seriesList.add((0 until bucketCount).map { entryOf(it, dailyValues[it+1] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, totals[it] ?: 0f) })
             }
             StatType.Macros -> {
                 val protein = mutableMapOf<Int, Float>()
@@ -143,19 +146,17 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                         fat[index] = (fat[index] ?: 0f) + log.fat.toFloat()
                     }
                 }
-                seriesList.add((0 until bucketCount).map { entryOf(it, protein[it+1] ?: 0f) })
-                seriesList.add((0 until bucketCount).map { entryOf(it, carbs[it+1] ?: 0f) })
-                seriesList.add((0 until bucketCount).map { entryOf(it, fat[it+1] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, protein[it] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, carbs[it] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, fat[it] ?: 0f) })
             }
         }
 
-        // Aggregate totals for info cards
         _workoutCount.value = allWorkoutLogs.count { log ->
             val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
             val (_, include) = getBucketIndex(date, range, today)
             include
         }
-        
         _totalCalories.value = allMealLogs.filter { log ->
             val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
             val (_, include) = getBucketIndex(date, range, today)
@@ -169,8 +170,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private fun getBucketIndex(date: LocalDate, range: TimeRange, today: LocalDate): Pair<Int, Boolean> {
         return when (range) {
             TimeRange.Week -> {
-                val diff = ChronoUnit.DAYS.between(date, today)
-                Pair(date.dayOfWeek.value, diff in 0..6)
+                val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+                val endOfWeek = startOfWeek.plusDays(6)
+                val isThisWeek = !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek)
+                Pair(date.dayOfWeek.value, isThisWeek)
             }
             TimeRange.Month -> {
                 Pair(date.dayOfMonth, YearMonth.from(date) == YearMonth.from(today))
