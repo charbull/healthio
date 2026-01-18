@@ -22,6 +22,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
 import com.google.api.services.sheets.v4.SheetsScopes
 
+import com.google.android.gms.common.api.ApiException
+import android.widget.Toast
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -41,17 +44,26 @@ fun SettingsScreen(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.result
-                account.email?.let { email ->
-                    viewModel.setConnectedAccount(email)
-                }
-            } catch (e: Exception) {
-                // Handle error
-                e.printStackTrace()
+        // Attempt to get account regardless of result code, as it might contain the error info
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            account.email?.let { email ->
+                viewModel.setConnectedAccount(email)
+                Toast.makeText(context, "Connected: $email", Toast.LENGTH_SHORT).show()
             }
+        } catch (e: ApiException) {
+            e.printStackTrace()
+            val errorMsg = when (e.statusCode) {
+                10 -> "Error 10: Configuration. Check SHA-1 in Cloud Console."
+                12500 -> "Error 12500: SHA-1 Mismatch or Missing Support Email."
+                12501 -> "User Cancelled."
+                else -> "Sign-In Failed: Code ${e.statusCode}"
+            }
+            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
