@@ -50,6 +50,7 @@ fun HomeScreen(
     var showEntryTypeDialog by remember { mutableStateOf(false) }
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var showInstallHCDialog by remember { mutableStateOf(false) }
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
     val hcPermissions = setOf(
@@ -78,6 +79,8 @@ fun HomeScreen(
             val error = (workoutSyncState as WorkoutSyncState.Error).message
             if (error.contains("NOT installed", ignoreCase = true)) {
                 showInstallHCDialog = true
+            } else if (error.contains("Permission Denied", ignoreCase = true)) {
+                showPermissionDeniedDialog = true
             } else {
                 Toast.makeText(context, error, Toast.LENGTH_LONG).show()
             }
@@ -86,6 +89,28 @@ fun HomeScreen(
     }
 
     // Dialogs
+    if (showPermissionDeniedDialog) {
+        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = { showPermissionDeniedDialog = false },
+            title = { Text("Permissions Required") },
+            text = { Text("To import your workouts, Healthio needs permission to read data from Health Connect. Please enable them in system settings.") },
+            confirmButton = {
+                Button(onClick = { 
+                    showPermissionDeniedDialog = false
+                    // Open Health Connect Settings
+                    uriHandler.openUri("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS")
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDeniedDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
     if (showInstallHCDialog) {
         val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
         AlertDialog(

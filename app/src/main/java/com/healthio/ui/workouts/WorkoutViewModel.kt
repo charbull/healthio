@@ -50,7 +50,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             try {
                 if (!healthManager.hasPermissions()) {
                     android.util.Log.w("Healthio", "Permissions missing!")
-                    _syncState.value = WorkoutSyncState.Error("Missing Health Connect Permissions")
+                    _syncState.value = WorkoutSyncState.Error("Permission Denied. Please enable Healthio in Health Connect settings to sync data.")
                     return@launch
                 }
 
