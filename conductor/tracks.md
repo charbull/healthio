@@ -15,3 +15,4 @@
 | 02.9 | Extended Stats Views | **Completed** | [View Track](./tracks/track-02-9-extended-stats/index.md) |
 | 03 | Smart Vision (AI) | **Completed** | [View Track](./tracks/track-03-smart-vision/index.md) |
 | 03.1 | Enhanced Smart Vision | **Completed** | [View Track](./tracks/track-03-1-enhanced-vision/index.md) |
+| 03.2 | Keto Alternatives Logic | **Completed** | [View Track](./tracks/track-03-2-keto-alternatives/index.md) |

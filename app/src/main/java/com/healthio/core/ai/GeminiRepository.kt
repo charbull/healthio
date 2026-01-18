@@ -23,7 +23,11 @@ class GeminiRepository {
             Identify the main dish.
             Estimate calories and macros (Protein, Carbs, Fat) for the visible portion.
             Provide a health score from 1 (Unhealthy) to 10 (Very Healthy).
-            Provide a short 1-sentence feedback.
+            
+            Keto Rule: If the dish is high in carbohydrates (generally >15g net carbs) or not keto-friendly, 
+            explicitly propose 2-3 keto-friendly alternatives or modifications in the feedback text.
+            
+            Provide a short feedback (1-3 sentences).
             
             Return ONLY raw JSON with keys: foodName, calories, protein, carbs, fat, healthScore, feedback.
             Do not use markdown formatting.
