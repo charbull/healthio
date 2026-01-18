@@ -21,6 +21,10 @@ data class HCWorkout(
 class HealthConnectManager(private val context: Context) {
     private val healthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
+    fun isAvailable(): Boolean {
+        return HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
+    }
+
     val permissions = setOf(
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
         HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class)

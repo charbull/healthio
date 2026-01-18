@@ -31,18 +31,36 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun fetchFromHealthConnect() {
         viewModelScope.launch {
             _syncState.value = WorkoutSyncState.Syncing
+            android.util.Log.d("Healthio", "Checking Health Connect Availability...")
+            
+            if (!healthManager.isAvailable()) {
+                _syncState.value = WorkoutSyncState.Error("Health Connect not available on this device.")
+                return@launch
+            }
+
+            android.util.Log.d("Healthio", "Starting Health Connect Fetch...")
             try {
                 if (!healthManager.hasPermissions()) {
+                    android.util.Log.w("Healthio", "Permissions missing!")
                     _syncState.value = WorkoutSyncState.Error("Missing Health Connect Permissions")
                     return@launch
                 }
 
                 val now = Instant.now()
-                val startTime = now.minus(7, ChronoUnit.DAYS) // Fetch last 7 days
-                val hcWorkouts = healthManager.fetchWorkouts(startTime, now)
+                val startTime = now.minus(7, ChronoUnit.DAYS)
+                android.util.Log.d("Healthio", "Fetching records since $startTime")
                 
+                val hcWorkouts = healthManager.fetchWorkouts(startTime, now)
+                android.util.Log.d("Healthio", "Found ${hcWorkouts.size} sessions in Health Connect")
+                
+                if (hcWorkouts.isEmpty()) {
+                    _syncState.value = WorkoutSyncState.Success(0)
+                    return@launch
+                }
+
                 val existingIds = repository.getImportedExternalIds()
                 val newWorkouts = hcWorkouts.filter { it.externalId !in existingIds }
+                android.util.Log.d("Healthio", "New workouts to import: ${newWorkouts.size}")
 
                 newWorkouts.forEach { hc ->
                     repository.logWorkout(
@@ -59,7 +77,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
                 _syncState.value = WorkoutSyncState.Success(newWorkouts.size)
             } catch (e: Exception) {
-                _syncState.value = WorkoutSyncState.Error(e.message ?: "Unknown Sync Error")
+                android.util.Log.e("Healthio", "Sync error", e)
+                _syncState.value = WorkoutSyncState.Error("Sync Error: ${e.localizedMessage}")
             }
         }
     }
