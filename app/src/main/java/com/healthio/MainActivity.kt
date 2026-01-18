@@ -7,18 +7,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.healthio.ui.dashboard.HomeScreen
+import com.healthio.ui.dashboard.HomeViewModel
+import com.healthio.ui.settings.SettingsScreen
+import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.stats.StatsScreen
 import com.healthio.ui.theme.HealthioTheme
-
-import com.healthio.ui.settings.SettingsScreen
-
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.healthio.ui.dashboard.HomeViewModel
-import com.healthio.ui.settings.SettingsViewModel
+import com.healthio.ui.vision.VisionScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +30,6 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     
-                    // Create shared ViewModels scoped to the Activity/Graph
                     val homeViewModel: HomeViewModel = viewModel()
                     val settingsViewModel: SettingsViewModel = viewModel()
 
@@ -40,6 +38,7 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onNavigateToStats = { navController.navigate("stats") },
                                 onNavigateToSettings = { navController.navigate("settings") },
+                                onNavigateToVision = { navController.navigate("vision") },
                                 viewModel = homeViewModel,
                                 settingsViewModel = settingsViewModel
                             )
@@ -53,6 +52,11 @@ class MainActivity : ComponentActivity() {
                             SettingsScreen(
                                 onBack = { navController.popBackStack() },
                                 viewModel = settingsViewModel
+                            )
+                        }
+                        composable("vision") {
+                            VisionScreen(
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

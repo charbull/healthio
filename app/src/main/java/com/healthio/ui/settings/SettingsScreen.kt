@@ -93,7 +93,7 @@ fun SettingsScreen(
             )
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -134,6 +134,42 @@ fun SettingsScreen(
                         ) {
                             Text("Connect Google Drive")
                         }
+                    }
+                }
+            }
+
+            Text(
+                text = "AI Configuration",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Gemini API Key",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    OutlinedTextField(
+                        value = uiState.geminiApiKey ?: "",
+                        onValueChange = { viewModel.setGeminiApiKey(it) },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        placeholder = { Text("Paste your API Key here") },
+                        singleLine = true
+                    )
+                    
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                    TextButton(
+                        onClick = { uriHandler.openUri("https://aistudio.google.com/app/apikey") }
+                    ) {
+                        Text("Get a free API Key from Google AI Studio")
                     }
                 }
             }

@@ -26,6 +26,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     companion object {
         val GOOGLE_ACCOUNT_EMAIL = stringPreferencesKey("google_account_email")
         val SPREADSHEET_ID = stringPreferencesKey("spreadsheet_id")
+        val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
     }
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -34,16 +35,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     init {
         viewModelScope.launch {
             context.dataStore.data.map { preferences ->
-                preferences[GOOGLE_ACCOUNT_EMAIL]
-            }.collect { email ->
+                Triple(
+                    preferences[GOOGLE_ACCOUNT_EMAIL],
+                    preferences[GEMINI_API_KEY],
+                    preferences[SPREADSHEET_ID]
+                )
+            }.collect { (email, apiKey, _) ->
                 _uiState.value = _uiState.value.copy(
                     connectedEmail = email,
-                    isConnected = !email.isNullOrEmpty()
+                    isConnected = !email.isNullOrEmpty(),
+                    geminiApiKey = apiKey
                 )
                 if (!email.isNullOrEmpty()) {
                     scheduleBackup()
                 }
             }
+        }
+    }
+
+    fun setGeminiApiKey(key: String) {
+        viewModelScope.launch {
+            context.dataStore.edit { it[GEMINI_API_KEY] = key }
         }
     }
 
@@ -85,5 +97,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
 data class SettingsUiState(
     val isConnected: Boolean = false,
-    val connectedEmail: String? = null
+    val connectedEmail: String? = null,
+    val geminiApiKey: String? = null
 )

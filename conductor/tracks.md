@@ -12,4 +12,5 @@
 | 02.6 | Google Drive Sync | **Completed** | [View Track](./tracks/track-02-6-drive-sync/index.md) |
 | 02.7 | Manual Fast Entry | **Completed** | [View Track](./tracks/track-02-7-manual-entry/index.md) |
 | 02.8 | Chart Polish | **Completed** | [View Track](./tracks/track-02-8-chart-polish/index.md) |
-| 02.9 | Extended Stats Views | **Active** | [View Track](./tracks/track-02-9-extended-stats/index.md) |
+| 02.9 | Extended Stats Views | **Completed** | [View Track](./tracks/track-02-9-extended-stats/index.md) |
+| 03 | Smart Vision (AI) | **Completed** | [View Track](./tracks/track-03-smart-vision/index.md) |

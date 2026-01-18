@@ -81,6 +81,17 @@ dependencies {
         exclude(group = "org.apache.httpcomponents")
     }
     implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // Gemini AI
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // CameraX
+    val cameraxVersion = "1.3.1"
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
