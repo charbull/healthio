@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -34,7 +33,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
-import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -46,7 +44,6 @@ fun VisionScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     
     var hasPermission by remember { mutableStateOf(false) }
     
@@ -90,7 +87,7 @@ fun VisionScreen(
                         val bitmap = (state as VisionState.Review).bitmap
                         ReviewContent(
                             bitmap = bitmap,
-                            onAnalyze = { context -> viewModel.analyzeImage(context) },
+                            onAnalyze = { contextText -> viewModel.analyzeImage(contextText) },
                             onRetake = { viewModel.reset() }
                         )
                     }
@@ -130,7 +127,6 @@ fun ReviewContent(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Image Preview
         Card(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
@@ -147,7 +143,6 @@ fun ReviewContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Context Input
         OutlinedTextField(
             value = contextText,
             onValueChange = { contextText = it },
@@ -159,7 +154,6 @@ fun ReviewContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Actions
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -257,11 +251,10 @@ fun ResultContent(analysis: com.healthio.core.ai.FoodAnalysis) {
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Score Badge
         val scoreColor = when {
-            analysis.healthScore >= 8 -> Color(0xFF4CAF50) // Green
-            analysis.healthScore >= 5 -> Color(0xFFFF9800) // Orange
-            else -> Color(0xFFF44336) // Red
+            analysis.healthScore >= 8 -> Color(0xFF4CAF50)
+            analysis.healthScore >= 5 -> Color(0xFFFF9800)
+            else -> Color(0xFFF44336)
         }
         
         Surface(
@@ -276,20 +269,20 @@ fun ResultContent(analysis: com.healthio.core.ai.FoodAnalysis) {
             )
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
-        // Macros
-        Row(
+        // Macros with Progress Bars
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            MacroItem("Calories", analysis.calories.toString())
-            MacroItem("Protein", "${analysis.protein}g")
-            MacroItem("Carbs", "${analysis.carbs}g")
-            MacroItem("Fat", "${analysis.fat}g")
+            MacroBar(label = "Calories", value = analysis.calories, unit = "kcal", max = 1000, color = Color.Gray)
+            MacroBar(label = "Protein", value = analysis.protein, unit = "g", max = 50, color = Color(0xFF2196F3))
+            MacroBar(label = "Carbs", value = analysis.carbs, unit = "g", max = 100, color = Color(0xFFFFC107))
+            MacroBar(label = "Fat", value = analysis.fat, unit = "g", max = 50, color = Color(0xFFE91E63))
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -305,10 +298,29 @@ fun ResultContent(analysis: com.healthio.core.ai.FoodAnalysis) {
 }
 
 @Composable
-fun MacroItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-        Text(text = label, style = MaterialTheme.typography.labelMedium)
+fun MacroBar(label: String, value: Int, unit: String, max: Int, color: Color) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = label, style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "$value$unit",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = (value.toFloat() / max).coerceIn(0f, 1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp),
+            color = color,
+            trackColor = color.copy(alpha = 0.1f),
+            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+        )
     }
 }
 
@@ -341,13 +353,10 @@ private fun takePhoto(
         ContextCompat.getMainExecutor(context),
         object : ImageCapture.OnImageSavedCallback {
             override fun onError(exc: ImageCaptureException) {
-                // Handle error
             }
 
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                // Load bitmap and resize
                 val bitmap = BitmapFactory.decodeFile(File(context.cacheDir, "temp.jpg").absolutePath)
-                // Resize to max 1024 to save bandwidth
                 val resized = resizeBitmap(bitmap, 1024)
                 onImageCaptured(resized)
             }
