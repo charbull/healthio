@@ -14,6 +14,8 @@ import com.healthio.ui.dashboard.HomeScreen
 import com.healthio.ui.stats.StatsScreen
 import com.healthio.ui.theme.HealthioTheme
 
+import com.healthio.ui.settings.SettingsScreen
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,11 +30,17 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController = navController, startDestination = "home") {
                         composable("home") {
                             HomeScreen(
-                                onNavigateToStats = { navController.navigate("stats") }
+                                onNavigateToStats = { navController.navigate("stats") },
+                                onNavigateToSettings = { navController.navigate("settings") }
                             )
                         }
                         composable("stats") {
                             StatsScreen(
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
                                 onBack = { navController.popBackStack() }
                             )
                         }

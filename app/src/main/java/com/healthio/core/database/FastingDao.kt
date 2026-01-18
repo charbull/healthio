@@ -11,7 +11,12 @@ interface FastingDao {
     suspend fun insertLog(log: FastingLog)
 
     // Get logs for the last X days.
-    // We'll just get all for now and filter in UI/Repo for simplicity or use a generic query
     @Query("SELECT * FROM fasting_logs ORDER BY endTime DESC")
     fun getAllLogs(): Flow<List<FastingLog>>
+
+    @Query("SELECT * FROM fasting_logs WHERE isSynced = 0")
+    suspend fun getUnsyncedLogs(): List<FastingLog>
+
+    @Query("UPDATE fasting_logs SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<Long>)
 }

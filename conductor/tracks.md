@@ -9,3 +9,4 @@
 | 02.3 | Branding & Logo | **Completed** | [View Track](./tracks/track-02-3-branding/index.md) |
 | 02.4 | Fasting History & Charts | **Completed** | [View Track](./tracks/track-02-4-fasting-history/index.md) |
 | 02.5 | Flux Timer 24h Visuals | **Completed** | [View Track](./tracks/track-02-5-timer-24h/index.md) |
+| 02.6 | Google Drive Sync | **Completed** | [View Track](./tracks/track-02-6-drive-sync/index.md) |

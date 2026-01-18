@@ -5,6 +5,7 @@ import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import java.util.Calendar
 @Composable
 fun HomeScreen(
     onNavigateToStats: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -110,12 +112,20 @@ fun HomeScreen(
                 )
             }
             
-            // Stats Button
-            IconButton(onClick = onNavigateToStats) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = "History"
-                )
+            // Stats & Settings Buttons
+            Row {
+                IconButton(onClick = onNavigateToStats) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "History"
+                    )
+                }
+                IconButton(onClick = onNavigateToSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings"
+                    )
+                }
             }
         }
 
