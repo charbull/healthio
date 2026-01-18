@@ -88,10 +88,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 val yearMonth = YearMonth.now(zoneId)
                 val daysInMonth = yearMonth.lengthOfMonth()
                 
-                // Labels: 1, 5, 10, 15, 20, 25, 30? Or just indices. 
-                // Vico handles dense labels well usually, but 30 strings might overlap.
-                // We'll pass all strings, Vico can skip if we configure axis (or we pass empty strings).
-                // Let's pass numbers.
+                // Labels: Show all days (1, 2, 3...)
                 for (d in 1..daysInMonth) labels.add(d.toString())
                 
                 val dailyMax = mutableMapOf<Int, Float>()
