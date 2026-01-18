@@ -41,13 +41,22 @@ class GeminiRepository {
                 }
             )
             
-            val json = response.text?.replace("```json", "")?.replace("```", "")?.trim()
-            val analysis = Gson().fromJson(json, FoodAnalysis::class.java)
+            val rawText = response.text ?: ""
+            // Extract JSON substring
+            val startIndex = rawText.indexOf('{')
+            val endIndex = rawText.lastIndexOf('}')
             
-            if (analysis != null) {
-                Result.success(analysis)
+            if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+                val jsonString = rawText.substring(startIndex, endIndex + 1)
+                val analysis = Gson().fromJson(jsonString, FoodAnalysis::class.java)
+                
+                if (analysis != null) {
+                    Result.success(analysis)
+                } else {
+                    Result.failure(Exception("Parsed JSON was null"))
+                }
             } else {
-                Result.failure(Exception("Failed to parse AI response"))
+                Result.failure(Exception("No valid JSON found in response: $rawText"))
             }
         } catch (e: Exception) {
             e.printStackTrace()
