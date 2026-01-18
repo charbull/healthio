@@ -19,12 +19,6 @@
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
         <package android:name="com.google.android.apps.healthconnect" />
-        <intent>
-            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-        </intent>
-        <intent>
-            <action android:name="android.health.connect.action.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-        </intent>
     </queries>
 
     <application
@@ -36,8 +30,6 @@
         android:roundIcon="@drawable/ic_launcher_foreground"
         android:supportsRtl="true"
         android:theme="@style/Theme.Healthio">
-        
-        <meta-data android:name="health_connect_permission_rationale_activity_name" android:value=".MainActivity" />
         
         <activity
             android:name=".MainActivity"
@@ -56,7 +48,24 @@
             <intent-filter>
                 <action android:name="android.health.connect.action.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
+            
+            <meta-data android:name="health_connect_permission_rationale_activity_name" android:value=".MainActivity" />
         </activity>
+        
+        <!-- Dedicated Rationale Activity if the system prefers it -->
+        <activity-alias
+            android:name=".HealthConnectRationaleActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.health.permissions.SHOW_PERMISSIONS_RATIONALE">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.health.connect.action.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity-alias>
+
     </application>
 
 </manifest>
