@@ -144,7 +144,7 @@ fun HomeScreen(
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -192,9 +192,9 @@ fun HomeScreen(
                 onManualEntry = { showEntryTypeDialog = true }
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Section 2: Energy Dashboard
             EnergySection(
@@ -219,7 +219,7 @@ fun FastingSection(
             FluxTimer(state = uiState.timerState, elapsedMillis = uiState.elapsedMillis)
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         Text(
             text = uiState.timeDisplay,
@@ -227,18 +227,13 @@ fun FastingSection(
                 fontWeight = FontWeight.Light, fontFeatureSettings = "tnum"
             )
         )
-        Text(
-            text = if (uiState.timerState == TimerState.FASTING) "FASTING TIME" else "READY",
-            color = if (uiState.timerState == TimerState.FASTING) Color(0xFF4CAF50) else Color(0xFFFF9800),
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-        )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         if (uiState.timerState == TimerState.FASTING) {
             Button(
                 onClick = onEndFast,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                 shape = MaterialTheme.shapes.medium
             ) {
@@ -247,13 +242,13 @@ fun FastingSection(
         } else {
             Button(
                 onClick = onStartFast,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                 shape = MaterialTheme.shapes.medium
             ) {
                 Text(text = "START FASTING", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             }
-            TextButton(onClick = onManualEntry, modifier = Modifier.padding(top = 8.dp)) {
+            TextButton(onClick = onManualEntry, modifier = Modifier.padding(top = 4.dp)) {
                 Text(text = "Manual Entry / Log Past Fast...", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)))
             }
         }
@@ -276,7 +271,7 @@ fun EnergySection(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Calories",
