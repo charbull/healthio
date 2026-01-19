@@ -4,6 +4,8 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
@@ -135,14 +137,14 @@ fun HomeScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 32.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -162,16 +164,16 @@ fun HomeScreen(
                             ) {}
                         }
                     }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            text = "Healthio",
-                                            style = MaterialTheme.typography.headlineMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                letterSpacing = 1.sp,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        )
-                                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Healthio",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
                 Row {
                     IconButton(onClick = onNavigateToStats) {
                         Icon(imageVector = Icons.Default.DateRange, contentDescription = "History")
@@ -182,91 +184,129 @@ fun HomeScreen(
                 }
             }
 
-            // Center: Timer & Summary
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                FluxTimer(state = uiState.timerState, elapsedMillis = uiState.elapsedMillis)
-                Spacer(modifier = Modifier.size(32.dp))
-                Text(
-                    text = uiState.timeDisplay,
-                    style = MaterialTheme.typography.displayMedium.copy(
-                        fontWeight = FontWeight.Light, fontFeatureSettings = "tnum"
+            // Section 1: Fasting Control
+            FastingSection(
+                uiState = uiState,
+                onStartFast = { viewModel.startFastNow() },
+                onEndFast = { viewModel.requestEndFast() },
+                onManualEntry = { showEntryTypeDialog = true }
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+            Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Section 2: Energy Dashboard
+            EnergySection(
+                uiState = uiState,
+                onAddWorkout = { showWorkoutDialog = true }
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun FastingSection(
+    uiState: HomeUiState,
+    onStartFast: () -> Unit,
+    onEndFast: () -> Unit,
+    onManualEntry: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.Center) {
+            FluxTimer(state = uiState.timerState, elapsedMillis = uiState.elapsedMillis)
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        Text(
+            text = uiState.timeDisplay,
+            style = MaterialTheme.typography.displayMedium.copy(
+                fontWeight = FontWeight.Light, fontFeatureSettings = "tnum"
+            )
+        )
+        Text(
+            text = if (uiState.timerState == TimerState.FASTING) "FASTING TIME" else "READY",
+            color = if (uiState.timerState == TimerState.FASTING) Color(0xFF4CAF50) else Color(0xFFFF9800),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        if (uiState.timerState == TimerState.FASTING) {
+            Button(
+                onClick = onEndFast,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(text = "END FAST", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            }
+        } else {
+            Button(
+                onClick = onStartFast,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(text = "START FASTING", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            }
+            TextButton(onClick = onManualEntry, modifier = Modifier.padding(top = 8.dp)) {
+                Text(text = "Manual Entry / Log Past Fast...", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)))
+            }
+        }
+    }
+}
+
+@Composable
+fun EnergySection(
+    uiState: HomeUiState,
+    onAddWorkout: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Today's Energy",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Calories",
+                        style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     )
-                )
-                Text(
-                    text = if (uiState.timerState == TimerState.FASTING) "FASTING TIME" else "READY",
-                    color = if (uiState.timerState == TimerState.FASTING) Color(0xFF4CAF50) else Color(0xFFFF9800),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Summary Card
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Today's Energy",
-                                style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            IconButton(onClick = { showWorkoutDialog = true }, modifier = Modifier.size(24.dp)) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Workout", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(text = "${uiState.todayCalories}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                                Text(text = "Intake", style = MaterialTheme.typography.labelSmall)
-                            }
-                            Text("-", style = MaterialTheme.typography.titleLarge)
-                            Column {
-                                Text(text = "${uiState.todayBurnedCalories}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFFE91E63))
-                                Text(text = "Burned", style = MaterialTheme.typography.labelSmall)
-                            }
-                            Text("=", style = MaterialTheme.typography.titleLarge)
-                            Column {
-                                val net = uiState.todayCalories - uiState.todayBurnedCalories
-                                Text(text = "$net", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = if (net <= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface)
-                                Text(text = "Net kcal", style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = onAddWorkout, modifier = Modifier.size(24.dp)) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Workout", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
-            }
-
-            // Action Buttons
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (uiState.timerState == TimerState.FASTING) {
-                    Button(
-                        onClick = { viewModel.requestEndFast() },
-                        modifier = Modifier.fillMaxWidth().height(64.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(text = "END FAST", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(text = "${uiState.todayCalories}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                        Text(text = "Intake", style = MaterialTheme.typography.labelSmall)
                     }
-                } else {
-                    Button(
-                        onClick = { viewModel.startFastNow() },
-                        modifier = Modifier.fillMaxWidth().height(64.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(text = "START FASTING NOW", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Text("-", style = MaterialTheme.typography.titleLarge)
+                    Column {
+                        Text(text = "${uiState.todayBurnedCalories}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFFE91E63))
+                        Text(text = "Burned", style = MaterialTheme.typography.labelSmall)
                     }
-                    TextButton(onClick = { showEntryTypeDialog = true }) {
-                        Text(text = "Manual Entry / Log Past Fast...", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)))
+                    Text("=", style = MaterialTheme.typography.titleLarge)
+                    Column {
+                        val net = uiState.todayCalories - uiState.todayBurnedCalories
+                        Text(text = "$net", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = if (net <= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface)
+                        Text(text = "Net kcal", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
