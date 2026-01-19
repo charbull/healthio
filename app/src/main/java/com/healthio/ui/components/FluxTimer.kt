@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -12,33 +14,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.healthio.ui.dashboard.TimerState
 
 @Composable
 fun FluxTimer(
     state: TimerState,
     elapsedMillis: Long,
+    timeDisplay: String,
     modifier: Modifier = Modifier
 ) {
     val dayMillis = 24 * 60 * 60 * 1000L
     
-    // If not fasting, show 0 or full empty ring
-    if (state != TimerState.FASTING) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(280.dp)) {
-                drawCircle(
-                    color = Color(0xFFFF9800).copy(alpha = 0.1f),
-                    style = Stroke(width = 40f)
-                )
-            }
-        }
-        return
-    }
-
-    val fullDays = (elapsedMillis / dayMillis).toInt()
-    val remainderMillis = elapsedMillis % dayMillis
-    val currentDayProgress = remainderMillis.toFloat() / dayMillis
+    val fullDays = if (state == TimerState.FASTING) (elapsedMillis / dayMillis).toInt() else 0
+    val remainderMillis = if (state == TimerState.FASTING) elapsedMillis % dayMillis else 0L
+    val currentDayProgress = if (state == TimerState.FASTING) remainderMillis.toFloat() / dayMillis else 0f
 
     val animatedCurrentProgress by animateFloatAsState(
         targetValue = currentDayProgress,
@@ -46,7 +38,7 @@ fun FluxTimer(
         label = "CurrentRingProgress"
     )
 
-    val primaryColor = Color(0xFF4CAF50)
+    val primaryColor = if (state == TimerState.FASTING) Color(0xFF4CAF50) else Color(0xFFFF9800).copy(alpha = 0.5f)
     val trackColor = primaryColor.copy(alpha = 0.1f)
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -55,13 +47,6 @@ fun FluxTimer(
             val gap = 10f
             val baseRadius = (size.minDimension - strokeWidth) / 2
             
-            // Draw Rings
-            // We draw from Outer (Day 1) to Inner
-            // Limit to max 3 rings for aesthetics, or dynamic? Let's support dynamic but it gets small fast.
-            
-            // Logic:
-            // Loop for each completed day + 1 for current
-            // Limit loop to avoid infinite small rings? Let's cap at 5.
             val ringsToDraw = (fullDays + 1).coerceAtMost(5)
             
             for (i in 0 until ringsToDraw) {
@@ -75,26 +60,36 @@ fun FluxTimer(
                     style = Stroke(width = strokeWidth)
                 )
 
-                // If this is a completed day (i < fullDays), it's full.
-                // If it's the current day (i == fullDays), it's partial.
-                if (i < fullDays) {
-                    drawCircle(
-                        color = primaryColor,
-                        radius = radius,
-                        style = Stroke(width = strokeWidth)
-                    )
-                } else if (i == fullDays) {
-                    drawArc(
-                        color = primaryColor,
-                        startAngle = -90f,
-                        sweepAngle = 360f * animatedCurrentProgress,
-                        useCenter = false,
-                        topLeft = center.minus(androidx.compose.ui.geometry.Offset(radius, radius)),
-                        size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                    )
+                if (state == TimerState.FASTING) {
+                    if (i < fullDays) {
+                        drawCircle(
+                            color = primaryColor,
+                            radius = radius,
+                            style = Stroke(width = strokeWidth)
+                        )
+                    } else if (i == fullDays) {
+                        drawArc(
+                            color = primaryColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * animatedCurrentProgress,
+                            useCenter = false,
+                            topLeft = center.minus(androidx.compose.ui.geometry.Offset(radius, radius)),
+                            size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+                    }
                 }
             }
         }
+        
+        // Time Display Text
+        Text(
+            text = timeDisplay,
+            style = MaterialTheme.typography.displayMedium.copy(
+                fontWeight = FontWeight.Light,
+                fontFeatureSettings = "tnum",
+                letterSpacing = (-1).sp
+            )
+        )
     }
 }

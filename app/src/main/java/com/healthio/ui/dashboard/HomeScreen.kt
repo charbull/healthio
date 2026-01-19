@@ -239,17 +239,12 @@ fun FastingSection(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.Center) {
-            FluxTimer(state = uiState.timerState, elapsedMillis = uiState.elapsedMillis)
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = uiState.timeDisplay,
-            style = MaterialTheme.typography.displayMedium.copy(
-                fontWeight = FontWeight.Light, fontFeatureSettings = "tnum"
+            FluxTimer(
+                state = uiState.timerState,
+                elapsedMillis = uiState.elapsedMillis,
+                timeDisplay = uiState.timeDisplay
             )
-        )
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         
