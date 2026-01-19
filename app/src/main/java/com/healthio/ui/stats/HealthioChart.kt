@@ -45,16 +45,21 @@ fun HealthioChart(
         listOf(colors[0])
     }
 
+    val pointCount = series.firstOrNull()?.size ?: 0
+    val isDense = pointCount > 20
+    val barThickness = if (isDense) 6.dp else if (series.size > 1) 4.dp else 12.dp
+    val barSpacing = if (isDense) 4.dp else if (series.size > 1) 4.dp else 12.dp
+
     Chart(
         chart = columnChart(
             columns = columnColors.map { color ->
                 lineComponent(
                     color = color,
-                    thickness = if (series.size > 1) 4.dp else 12.dp,
+                    thickness = barThickness,
                     shape = Shapes.roundedCornerShape(topLeftPercent = 50, topRightPercent = 50)
                 )
             },
-            spacing = if (series.size > 1) 4.dp else 12.dp
+            spacing = barSpacing
         ),
         chartModelProducer = chartEntryModelProducer,
         startAxis = rememberStartAxis(

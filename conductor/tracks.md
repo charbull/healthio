@@ -23,3 +23,4 @@
 | 07 | Project Refinements & Polish | **Completed** | [View Track](./tracks/track-07-refinements/index.md) |
 | 08 | Fix Fasting Stats | **Completed** | [View Track](./tracks/track-08-fix-fasting-stats/index.md) |
 | 09 | Fix Month Fasting Logic | **Completed** | [View Track](./tracks/track-09-fix-month-fasting-logic/index.md) |
+| 10 | Fix Month Chart UI | **Completed** | [View Track](./tracks/track-10-fix-month-chart-ui/index.md) |
