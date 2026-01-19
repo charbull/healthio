@@ -1,6 +1,8 @@
 package com.healthio.ui.stats
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -13,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.patrykandpatrick.vico.core.entry.ChartEntry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,12 +24,11 @@ fun StatsScreen(
     viewModel: StatsViewModel = viewModel()
 ) {
     val timeRange by viewModel.timeRange.collectAsState()
-    val statType by viewModel.statType.collectAsState()
-    val chartSeries by viewModel.chartSeries.collectAsState()
     val chartLabels by viewModel.chartLabels.collectAsState()
-    val summaryTitle by viewModel.summaryTitle.collectAsState()
-    val summaryValue by viewModel.summaryValue.collectAsState()
-    val workoutDetails by viewModel.workoutDetails.collectAsState()
+    
+    val fastingState by viewModel.fastingState.collectAsState()
+    val energyState by viewModel.energyState.collectAsState()
+    val nutritionState by viewModel.nutritionState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -44,30 +46,10 @@ fun StatsScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Stat Type Toggle
-            TabRow(
-                selectedTabIndex = statType.ordinal,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.primary
-            ) {
-                StatType.values().forEach { type ->
-                    Tab(
-                        selected = statType == type,
-                        onClick = { viewModel.setStatType(type) },
-                        text = { 
-                            Text(
-                                text = type.name,
-                                style = MaterialTheme.typography.labelSmall
-                            ) 
-                        }
-                    )
-                }
-            }
-
             // Range Selector
             Row(
                 modifier = Modifier
@@ -84,72 +66,125 @@ fun StatsScreen(
                 }
             }
 
-            val title = when (statType) {
-                StatType.Fasting -> "Fasting Time (Hours)"
-                StatType.Workouts -> "Exercises (Sessions)"
-                StatType.Calories -> "Energy Intake (kcal)"
-                StatType.Macros -> "Macronutrients (Grams)"
-            }
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            if (statType == StatType.Macros) {
-                Row(modifier = Modifier.padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    LegendItem("Protein", Color(0xFF2196F3))
-                    LegendItem("Carbs", Color(0xFFFFC107))
-                    LegendItem("Fat", Color(0xFFE91E63))
+            // 1. Fasting Section
+            StatsSection(
+                title = "Fasting Consistency",
+                chartSeries = fastingState.chartSeries,
+                labels = chartLabels,
+                summaryContent = {
+                    SummaryDetail("Consistency", fastingState.summaryValue)
                 }
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            if (chartSeries.isEmpty()) {
-                Text("No data for this period.", style = MaterialTheme.typography.bodyLarge)
-            } else {
-                HealthioChart(
-                    series = chartSeries,
-                    labels = chartLabels,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Summary Card
+            // 2. Energy & Workouts Section
+            StatsSection(
+                title = "Energy & Workout",
+                chartSeries = energyState.chartSeries,
+                labels = chartLabels,
+                legendContent = {
+                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem("Intake", Color(0xFF4CAF50))
+                        LegendItem("Burned", Color(0xFFFFC107))
+                    }
+                },
+                summaryContent = {
+                    val details = energyState.workoutSummary
+                    if (details != null) {
+                        Column {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                SummaryDetail("Sessions", "${details.sessions}")
+                                SummaryDetail("Burned", "${details.calories} kcal")
+                                SummaryDetail("Duration", "${details.minutes} min")
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                SummaryDetail("Wk Freq", "${details.sessionsWeek}")
+                                SummaryDetail("Mo Freq", "${details.sessionsMonth}")
+                                SummaryDetail("Yr Freq", "${details.sessionsYear}")
+                            }
+                        }
+                    } else {
+                        Text("No workout data")
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 3. Nutrition Section
+            StatsSection(
+                title = "Food Intake (Macros)",
+                chartSeries = nutritionState.chartSeries,
+                labels = chartLabels,
+                legendContent = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem("Protein", Color(0xFF2196F3))
+                        LegendItem("Carbs", Color(0xFFFFC107))
+                        LegendItem("Fat", Color(0xFFE91E63))
+                    }
+                },
+                summaryContent = {
+                    SummaryDetail("Total Intake", nutritionState.summaryValue)
+                }
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun StatsSection(
+    title: String,
+    chartSeries: List<List<ChartEntry>>,
+    labels: List<String>,
+    legendContent: @Composable (() -> Unit)? = null,
+    summaryContent: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            if (legendContent != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                legendContent()
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (chartSeries.isEmpty() || chartSeries.all { it.isEmpty() }) {
+                Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                    Text("No data available", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                }
+            } else {
+                HealthioChart(
+                    series = chartSeries,
+                    labels = labels,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                                        if (statType == StatType.Workouts && workoutDetails != null) {
-                                            Text(text = "Workout Summary", style = MaterialTheme.typography.labelMedium)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                SummaryDetail("Sessions", "${workoutDetails?.sessions}")
-                                                SummaryDetail("Burned", "${workoutDetails?.calories} kcal")
-                                                SummaryDetail("Duration", "${workoutDetails?.minutes} min")
-                                            }
-                                            Spacer(modifier = Modifier.height(16.dp))
-                                            Divider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f))
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(text = "Frequency", style = MaterialTheme.typography.labelMedium)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                SummaryDetail("This Week", "${workoutDetails?.sessionsWeek}")
-                                                SummaryDetail("This Month", "${workoutDetails?.sessionsMonth}")
-                                                SummaryDetail("This Year", "${workoutDetails?.sessionsYear}")
-                                            }
-                                        }
-                     else {
-                        Text(text = summaryTitle, style = MaterialTheme.typography.labelMedium)
-                        Text(text = summaryValue, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                    }
+                Column(modifier = Modifier.padding(12.dp)) {
+                    summaryContent()
                 }
             }
         }
@@ -159,15 +194,15 @@ fun StatsScreen(
 @Composable
 fun SummaryDetail(label: String, value: String) {
     Column {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f))
-        Text(text = value, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
     }
 }
 
 @Composable
 fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Surface(modifier = Modifier.size(12.dp), color = color, shape = androidx.compose.foundation.shape.CircleShape) {}
+        Surface(modifier = Modifier.size(8.dp), color = color, shape = androidx.compose.foundation.shape.CircleShape) {}
         Spacer(modifier = Modifier.width(4.dp))
         Text(text = label, style = MaterialTheme.typography.labelSmall)
     }

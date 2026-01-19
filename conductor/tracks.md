@@ -25,3 +25,4 @@
 | 09 | Fix Month Fasting Logic | **Completed** | [View Track](./tracks/track-09-fix-month-fasting-logic/index.md) |
 | 10 | Fix Month Chart UI | **Completed** | [View Track](./tracks/track-10-fix-month-chart-ui/index.md) |
 | 11 | Unit Tests for Stats Logic | **Completed** | [View Track](./tracks/track-11-unit-tests-stats/index.md) |
+| 12 | Stats UI Overhaul | **Completed** | [View Track](./tracks/track-12-stats-ui-overhaul/index.md) |
