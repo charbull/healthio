@@ -109,7 +109,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
         when (type) {
             StatType.Fasting -> {
-                val dailyMax = mutableMapOf<Int, Float>()
+                val dailyTotal = mutableMapOf<Int, Float>()
                 allFastingLogs.forEach { log ->
                     var currentStart = Instant.ofEpochMilli(log.startTime).atZone(zoneId)
                     val endDateTime = Instant.ofEpochMilli(log.endTime).atZone(zoneId)
@@ -119,12 +119,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                         val (index, include) = getBucketIndex(currentStart.toLocalDate(), range, today)
                         if (include) {
                             val durationHrs = ChronoUnit.MILLIS.between(currentStart, segmentEnd) / 3600000f
-                            dailyMax[index] = maxOf(dailyMax[index] ?: 0f, durationHrs)
+                            dailyTotal[index] = (dailyTotal[index] ?: 0f) + durationHrs
                         }
                         currentStart = segmentEnd
                     }
                 }
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyMax[it] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyTotal[it] ?: 0f) })
                 _summaryTitle.value = "Fasting"
                 _summaryValue.value = "Active consistency"
             }

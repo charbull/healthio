@@ -21,3 +21,4 @@
 | 05.1 | Nutrition Spreadsheet Sync | **Completed** | [View Track](./tracks/track-05-1-nutrition-sync/index.md) |
 | 06 | Workout Tracking & Health Connect | **Completed** | [View Track](./tracks/track-06-workouts/index.md) |
 | 07 | Project Refinements & Polish | **Completed** | [View Track](./tracks/track-07-refinements/index.md) |
+| 08 | Fix Fasting Stats | **Completed** | [View Track](./tracks/track-08-fix-fasting-stats/index.md) |
