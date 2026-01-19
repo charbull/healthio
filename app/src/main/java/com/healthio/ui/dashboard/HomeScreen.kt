@@ -124,14 +124,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToVision,
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Scan Food")
-            }
-        }
+        // FAB removed as requested
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -199,7 +192,8 @@ fun HomeScreen(
             // Section 2: Energy Dashboard
             EnergySection(
                 uiState = uiState,
-                onAddWorkout = { showWorkoutDialog = true }
+                onAddWorkout = { showWorkoutDialog = true },
+                onAddMeal = onNavigateToVision
             )
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -258,7 +252,8 @@ fun FastingSection(
 @Composable
 fun EnergySection(
     uiState: HomeUiState,
-    onAddWorkout: () -> Unit
+    onAddWorkout: () -> Unit,
+    onAddMeal: () -> Unit
 ) {
     Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -272,17 +267,15 @@ fun EnergySection(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Calories",
-                        style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    IconButton(onClick = onAddWorkout, modifier = Modifier.size(24.dp)) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Workout", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+                // Header (No Icon)
+                Text(
+                    text = "Calories",
+                    style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                )
+                
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                // Stats Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -302,6 +295,34 @@ fun EnergySection(
                         val net = uiState.todayCalories - uiState.todayBurnedCalories
                         Text(text = "$net", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = if (net <= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface)
                         Text(text = "Net kcal", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Buttons Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    FilledTonalButton(
+                        onClick = onAddMeal,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Meal")
+                    }
+                    
+                    FilledTonalButton(
+                        onClick = onAddWorkout,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Workout")
                     }
                 }
             }
