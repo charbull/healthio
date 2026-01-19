@@ -20,10 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.healthio.ui.components.AddMealDialog
 import com.healthio.ui.components.AddWorkoutDialog
 import com.healthio.ui.components.FastCompletedDialog
 import com.healthio.ui.components.FluxTimer
 import com.healthio.ui.components.ManualEntryTypeDialog
+import com.healthio.ui.components.ManualFoodLogDialog
 import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
@@ -46,6 +48,8 @@ fun HomeScreen(
     // State for Dialogs
     var showEntryTypeDialog by remember { mutableStateOf(false) }
     var showWorkoutDialog by remember { mutableStateOf(false) }
+    var showAddMealDialog by remember { mutableStateOf(false) }
+    var showManualMealDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
     // Sync State Feedback
@@ -122,6 +126,31 @@ fun HomeScreen(
             }
         )
     }
+    
+    if (showAddMealDialog) {
+        AddMealDialog(
+            onDismiss = { showAddMealDialog = false },
+            onScanSelected = {
+                showAddMealDialog = false
+                onNavigateToVision()
+            },
+            onManualSelected = {
+                showAddMealDialog = false
+                showManualMealDialog = true
+            }
+        )
+    }
+    
+    if (showManualMealDialog) {
+        ManualFoodLogDialog(
+            onDismiss = { showManualMealDialog = false },
+            onLog = { name, calories, protein, carbs, fat ->
+                viewModel.logManualMeal(name, calories, protein, carbs, fat)
+                showManualMealDialog = false
+                Toast.makeText(context, "Meal Logged", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
 
     Scaffold(
         // FAB removed as requested
@@ -193,7 +222,7 @@ fun HomeScreen(
             EnergySection(
                 uiState = uiState,
                 onAddWorkout = { showWorkoutDialog = true },
-                onAddMeal = onNavigateToVision
+                onAddMeal = { showAddMealDialog = true }
             )
             
             Spacer(modifier = Modifier.height(32.dp))

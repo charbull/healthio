@@ -19,7 +19,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -120,13 +122,15 @@ fun VisionScreen(
                 is VisionState.Analyzing -> {
                     LoadingContent()
                 }
-                                    is VisionState.Success -> {
-                                        val result = (state as VisionState.Success).analysis
-                                        ResultContent(
-                                            analysis = result,
-                                            onSave = { viewModel.saveLog(result) }
-                                        )
-                                    }                is VisionState.Error -> {
+                                                                        is VisionState.Success -> {
+                                                                            val result = (state as VisionState.Success).analysis
+                                                                            ResultContent(
+                                                                                analysis = result,
+                                                                                onSave = { viewModel.saveLog(result) },
+                                                                                onDiscard = { viewModel.reset() }
+                                                                            )
+                                                                        }
+                                                    is VisionState.Error -> {
                     val error = (state as VisionState.Error).message
                     ErrorContent(error, onRetry = { viewModel.reset() })
                 }
@@ -311,7 +315,8 @@ fun CameraContent(
 @Composable
 fun ResultContent(
     analysis: com.healthio.core.ai.FoodAnalysis,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onDiscard: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -360,24 +365,39 @@ fun ResultContent(
         Spacer(modifier = Modifier.height(32.dp))
         
         Card(
-            modifier = Modifier.fillMaxWidth().weight(1f), // Allow scrolling if needed, or flexible height
+            modifier = Modifier.fillMaxWidth().weight(1f),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            Text(
-                text = analysis.feedback,
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = analysis.feedback,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Button(
-            onClick = onSave,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Save Log")
+            OutlinedButton(
+                onClick = onDiscard,
+                modifier = Modifier.weight(1f).height(56.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Stay away")
+            }
+            
+            Button(
+                onClick = onSave,
+                modifier = Modifier.weight(1f).height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text("Yep, I'm eating that")
+            }
         }
     }
 }

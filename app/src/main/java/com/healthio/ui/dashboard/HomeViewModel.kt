@@ -194,6 +194,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun logManualMeal(name: String, calories: Int, protein: Int, carbs: Int, fat: Int) {
+        viewModelScope.launch {
+            mealRepository.logMeal(
+                com.healthio.core.database.MealLog(
+                    timestamp = System.currentTimeMillis(),
+                    foodName = name,
+                    calories = calories,
+                    protein = protein,
+                    carbs = carbs,
+                    fat = fat
+                )
+            )
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
