@@ -35,3 +35,4 @@
 | 19 | Meal Entry Enhancement | **Completed** | [View Track](./tracks/track-19-meal-entry-enhancement/index.md) |
 | 20 | Compact Home UI v2 | **Completed** | [View Track](./tracks/track-20-compact-home-ui-v2/index.md) |
 | 21 | Timer Inside Circle | **Completed** | [View Track](./tracks/track-21-timer-inside-circle/index.md) |
+| 22 | Smart Reminders | **Completed** | [View Track](./tracks/track-22-smart-reminders/index.md) |

@@ -45,6 +45,17 @@ fun HomeScreen(
     val workoutSyncState by workoutViewModel.syncState.collectAsState()
     val context = LocalContext.current
 
+    // Permission for Notifications
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        onResult = { }
+    )
+    LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     // State for Dialogs
     var showEntryTypeDialog by remember { mutableStateOf(false) }
     var showWorkoutDialog by remember { mutableStateOf(false) }

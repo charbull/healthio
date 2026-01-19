@@ -25,4 +25,7 @@ interface WorkoutDao {
 
     @Query("UPDATE workout_logs SET isSynced = 1 WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<Long>)
+
+    @Query("SELECT COUNT(*) FROM workout_logs WHERE timestamp >= :start AND timestamp < :end")
+    suspend fun getCountBetween(start: Long, end: Long): Int
 }

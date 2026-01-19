@@ -20,9 +20,14 @@ import com.healthio.ui.theme.HealthioTheme
 import com.healthio.ui.vision.VisionScreen
 import com.healthio.ui.workouts.WorkoutViewModel
 
+import com.healthio.core.worker.ReminderScheduler
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        ReminderScheduler.scheduleAll(this)
+        
         setContent {
             HealthioTheme {
                 Surface(

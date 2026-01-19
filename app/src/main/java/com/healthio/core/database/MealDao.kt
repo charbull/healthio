@@ -31,4 +31,7 @@ interface MealDao {
 
     @Query("UPDATE meal_logs SET isSynced = 1 WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<Long>)
+
+    @Query("SELECT COUNT(*) FROM meal_logs WHERE timestamp >= :start AND timestamp < :end")
+    suspend fun getCountBetween(start: Long, end: Long): Int
 }
