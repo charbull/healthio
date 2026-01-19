@@ -191,6 +191,7 @@ fun HomeScreen(
                         text = "Healthio",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             letterSpacing = 1.sp,
                             color = MaterialTheme.colorScheme.primary
                         )
