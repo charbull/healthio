@@ -28,3 +28,4 @@
 | 12 | Stats UI Overhaul | **Reverted** | [View Track](./tracks/track-12-stats-ui-overhaul/index.md) |
 | 13 | Home Screen Organization | **Completed** | [View Track](./tracks/track-13-home-organization/index.md) |
 | 14 | Fix Fasting Week/Year Stats | **Completed** | [View Track](./tracks/track-14-fix-week-year-fasting/index.md) |
+| 15 | Robust Date Logic | **Completed** | [View Track](./tracks/track-15-robust-date-logic/index.md) |
