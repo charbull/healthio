@@ -33,3 +33,4 @@
 | 17 | Compact Home Screen UI | **Completed** | [View Track](./tracks/track-17-compact-home-ui/index.md) |
 | 18 | Energy UI Update | **Completed** | [View Track](./tracks/track-18-energy-ui-update/index.md) |
 | 19 | Meal Entry Enhancement | **Completed** | [View Track](./tracks/track-19-meal-entry-enhancement/index.md) |
+| 20 | Compact Home UI v2 | **Completed** | [View Track](./tracks/track-20-compact-home-ui-v2/index.md) |
