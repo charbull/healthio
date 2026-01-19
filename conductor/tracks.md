@@ -27,3 +27,4 @@
 | 11 | Unit Tests for Stats Logic | **Completed** | [View Track](./tracks/track-11-unit-tests-stats/index.md) |
 | 12 | Stats UI Overhaul | **Reverted** | [View Track](./tracks/track-12-stats-ui-overhaul/index.md) |
 | 13 | Home Screen Organization | **Completed** | [View Track](./tracks/track-13-home-organization/index.md) |
+| 14 | Fix Fasting Week/Year Stats | **Completed** | [View Track](./tracks/track-14-fix-week-year-fasting/index.md) |
