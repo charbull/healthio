@@ -127,15 +127,26 @@ fun StatsScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    if (statType == StatType.Workouts && workoutDetails != null) {
-                        Text(text = "Workout Summary", style = MaterialTheme.typography.labelMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            SummaryDetail("Sessions", "${workoutDetails?.sessions}")
-                            SummaryDetail("Burned", "${workoutDetails?.calories} kcal")
-                            SummaryDetail("Duration", "${workoutDetails?.minutes} min")
-                        }
-                    } else {
+                                        if (statType == StatType.Workouts && workoutDetails != null) {
+                                            Text(text = "Workout Summary", style = MaterialTheme.typography.labelMedium)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                SummaryDetail("Sessions", "${workoutDetails?.sessions}")
+                                                SummaryDetail("Burned", "${workoutDetails?.calories} kcal")
+                                                SummaryDetail("Duration", "${workoutDetails?.minutes} min")
+                                            }
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Divider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f))
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(text = "Frequency", style = MaterialTheme.typography.labelMedium)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                SummaryDetail("This Week", "${workoutDetails?.sessionsWeek}")
+                                                SummaryDetail("This Month", "${workoutDetails?.sessionsMonth}")
+                                                SummaryDetail("This Year", "${workoutDetails?.sessionsYear}")
+                                            }
+                                        }
+                     else {
                         Text(text = summaryTitle, style = MaterialTheme.typography.labelMedium)
                         Text(text = summaryValue, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
                     }

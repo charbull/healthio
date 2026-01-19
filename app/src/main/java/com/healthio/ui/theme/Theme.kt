@@ -63,7 +63,7 @@ fun HealthioTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = MaterialTheme.typography, // Default typography
+        typography = Typography,
         content = content
     )
 }

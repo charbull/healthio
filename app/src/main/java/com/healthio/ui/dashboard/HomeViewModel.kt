@@ -71,12 +71,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         startTimer()
     }
 
+    private var lastActiveBurned: Int = 0
+
     private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?, burned: Int?, baseBurn: Int) {
+        lastActiveBurned = burned ?: 0
+        val calendar = java.util.Calendar.getInstance()
+        val hoursPassed = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        val minutesPassed = calendar.get(java.util.Calendar.MINUTE)
+        val dayProgress = (hoursPassed * 60 + minutesPassed) / 1440f
+        
+        val dynamicBaseBurn = (baseBurn * dayProgress).toInt()
+
         _uiState.value = _uiState.value.copy(
             timerState = if (isFasting) TimerState.FASTING else TimerState.EATING,
             startTime = startTime,
             todayCalories = calories ?: 0,
-            todayBurnedCalories = (burned ?: 0) + baseBurn, // Total burn = Active + Base
+            todayBurnedCalories = lastActiveBurned + dynamicBaseBurn,
             baseDailyBurn = baseBurn
         )
         calculateProgress()
@@ -98,6 +108,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val currentState = _uiState.value
         val now = System.currentTimeMillis()
         
+        // Calculate dynamic BMR burn
+        val calendar = java.util.Calendar.getInstance()
+        val hoursPassed = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        val minutesPassed = calendar.get(java.util.Calendar.MINUTE)
+        val secondsPassed = calendar.get(java.util.Calendar.SECOND)
+        val dayProgress = (hoursPassed * 3600 + minutesPassed * 60 + secondsPassed) / 86400f
+        
+        val dynamicBaseBurn = (currentState.baseDailyBurn * dayProgress).toInt()
+        val totalBurned = lastActiveBurned + dynamicBaseBurn
+
         if (currentState.timerState == TimerState.FASTING && currentState.startTime != null) {
             val elapsed = now - currentState.startTime
             val progress = (elapsed.toFloat() / targetFastDuration).coerceIn(0f, 1f)
@@ -106,13 +126,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = currentState.copy(
                 progress = progress,
                 elapsedMillis = elapsed,
-                timeDisplay = timeString
+                timeDisplay = timeString,
+                todayBurnedCalories = totalBurned
             )
         } else {
             _uiState.value = currentState.copy(
                 progress = 0f,
                 elapsedMillis = 0L,
-                timeDisplay = "Ready to Fast"
+                timeDisplay = "Ready to Fast",
+                todayBurnedCalories = totalBurned
             )
         }
     }
