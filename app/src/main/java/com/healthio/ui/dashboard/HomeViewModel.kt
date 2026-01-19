@@ -133,7 +133,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = currentState.copy(
                 progress = 0f,
                 elapsedMillis = 0L,
-                timeDisplay = "Ready to Fast",
+                timeDisplay = "00:00:00",
                 todayBurnedCalories = totalBurned
             )
         }
