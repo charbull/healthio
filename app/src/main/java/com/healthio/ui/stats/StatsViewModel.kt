@@ -116,7 +116,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     while (currentStart.isBefore(endDateTime)) {
                         val endOfDay = currentStart.toLocalDate().plusDays(1).atStartOfDay(zoneId)
                         val segmentEnd = if (endDateTime.isBefore(endOfDay)) endDateTime else endOfDay
-                        val (index, include) = getBucketIndex(currentStart.toLocalDate(), range, today)
+                        val (index, include) = StatsUtils.getBucketIndex(currentStart.toLocalDate(), range, today)
                         if (include) {
                             val durationHrs = ChronoUnit.MILLIS.between(currentStart, segmentEnd) / 3600000f
                             dailyTotal[index] = (dailyTotal[index] ?: 0f) + durationHrs
@@ -133,7 +133,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 val filtered = allWorkoutLogs.filterWorkoutsIn(range, today)
                 filtered.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
+                    val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include) {
                         dailyCounts[index] = (dailyCounts[index] ?: 0f) + 1f
                     }
@@ -160,7 +160,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 val filtered = allMealLogs.filterMealsIn(range, today)
                 filtered.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
+                    val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include) {
                         dailyTotals[index] = (dailyTotals[index] ?: 0f) + log.calories.toFloat()
                     }
@@ -176,7 +176,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 val filtered = allMealLogs.filterMealsIn(range, today)
                 filtered.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
-                    val (index, include) = getBucketIndex(date, range, today)
+                    val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include) {
                         protein[index] = (protein[index] ?: 0f) + log.protein.toFloat()
                         carbs[index] = (carbs[index] ?: 0f) + log.carbs.toFloat()
@@ -195,29 +195,20 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         _chartLabels.value = labels
     }
 
-    private fun List<WorkoutLog>.filterWorkoutsIn(range: TimeRange, today: LocalDate) = filter { 
-        getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(ZoneId.systemDefault()).toLocalDate(), range, today).second 
-    }
-    
-    private fun List<MealLog>.filterMealsIn(range: TimeRange, today: LocalDate) = filter { 
-        getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(ZoneId.systemDefault()).toLocalDate(), range, today).second 
+        private fun List<WorkoutLog>.filterWorkoutsIn(range: TimeRange, today: LocalDate) = filter { 
+
+            StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(ZoneId.systemDefault()).toLocalDate(), range, today).second 
+
+        }
+
+        
+
+        private fun List<MealLog>.filterMealsIn(range: TimeRange, today: LocalDate) = filter { 
+
+            StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(ZoneId.systemDefault()).toLocalDate(), range, today).second 
+
+        }
+
     }
 
-    private fun getBucketIndex(date: LocalDate, range: TimeRange, today: LocalDate): Pair<Int, Boolean> {
-        return when (range) {
-            TimeRange.Week -> {
-                // Determine the Mon-Sun of the current week
-                val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
-                val endOfWeek = startOfWeek.plusDays(6)
-                val isThisWeek = !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek)
-                Pair(date.dayOfWeek.value, isThisWeek)
-            }
-            TimeRange.Month -> {
-                Pair(date.dayOfMonth, date.year == today.year && date.monthValue == today.monthValue)
-            }
-            TimeRange.Year -> {
-                Pair(date.monthValue, date.year == today.year)
-            }
-        }
-    }
-}
+    
