@@ -29,3 +29,4 @@
 | 13 | Home Screen Organization | **Completed** | [View Track](./tracks/track-13-home-organization/index.md) |
 | 14 | Fix Fasting Week/Year Stats | **Completed** | [View Track](./tracks/track-14-fix-week-year-fasting/index.md) |
 | 15 | Robust Date Logic | **Completed** | [View Track](./tracks/track-15-robust-date-logic/index.md) |
+| 16 | ViewModel Aggregation Tests | **Completed** | [View Track](./tracks/track-16-viewmodel-tests/index.md) |
