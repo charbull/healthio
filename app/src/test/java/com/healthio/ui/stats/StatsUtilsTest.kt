@@ -91,4 +91,17 @@ class StatsUtilsTest {
         val (_, incNext) = StatsUtils.getBucketIndex(nextJan, TimeRange.Year, today)
         assertFalse("Next year should be excluded", incNext)
     }
+
+    @Test
+    fun `Regression - Current time is always in current week`() {
+        // This test uses the actual system time to ensure no timezone math weirdness affects "Now"
+        val nowMillis = System.currentTimeMillis()
+        val zoneId = java.time.ZoneId.systemDefault()
+        val today = LocalDate.now(zoneId)
+        val date = java.time.Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
+        
+        val (_, include) = StatsUtils.getBucketIndex(date, TimeRange.Week, today)
+        
+        assertTrue("System.currentTimeMillis() MUST be included in the current Week view", include)
+    }
 }
