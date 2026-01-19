@@ -213,7 +213,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 Pair(date.dayOfWeek.value, isThisWeek)
             }
             TimeRange.Month -> {
-                Pair(date.dayOfMonth, YearMonth.from(date) == YearMonth.from(today))
+                Pair(date.dayOfMonth, date.year == today.year && date.monthValue == today.monthValue)
             }
             TimeRange.Year -> {
                 Pair(date.monthValue, date.year == today.year)
