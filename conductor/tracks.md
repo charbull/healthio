@@ -40,3 +40,5 @@
 | 24 | Fix Missing History Data | **Completed** | [View Track](./tracks/track-24-fix-missing-history/index.md) |
 | 25 | Regression Tests for History | **Completed** | [View Track](./tracks/track-25-regression-tests-history/index.md) |
 | 26 | Project Documentation | **Completed** | [View Track](./tracks/track-26-documentation/index.md) |
+| 27 | Fix App Icon | **Discarded** | [View Track](./tracks/track-27-fix-app-icon/index.md) |
+| 28 | Chart & Stats Polish | **Completed** | [View Track](./tracks/track-28-stats-polish/index.md) |

@@ -138,9 +138,9 @@ fun StatsScreen(
                                             Spacer(modifier = Modifier.height(16.dp))
                                             Divider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f))
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            Text(text = "Frequency", style = MaterialTheme.typography.labelMedium)
+                                            Text(text = "Frequency", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                                                 SummaryDetail("This Week", "${workoutDetails?.sessionsWeek}")
                                                 SummaryDetail("This Month", "${workoutDetails?.sessionsMonth}")
                                                 SummaryDetail("This Year", "${workoutDetails?.sessionsYear}")
@@ -159,8 +159,16 @@ fun StatsScreen(
 @Composable
 fun SummaryDetail(label: String, value: String) {
     Column {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f))
-        Text(text = value, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = label, 
+            style = MaterialTheme.typography.labelSmall, 
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value, 
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }
 

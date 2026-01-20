@@ -50,6 +50,11 @@ fun HealthioChart(
     val barThickness = if (isDense) 6.dp else if (series.size > 1) 4.dp else 12.dp
     val barSpacing = if (isDense) 4.dp else if (series.size > 1) 4.dp else 12.dp
 
+    val maxValue = series.flatten().maxByOrNull { it.y }?.y ?: 0f
+    val verticalItemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Vertical.default(
+        maxItemCount = if (maxValue > 0f && maxValue <= 5f) (maxValue.toInt() + 1) else 5
+    )
+
     Chart(
         chart = columnChart(
             columns = columnColors.map { color ->
@@ -64,7 +69,7 @@ fun HealthioChart(
         chartModelProducer = chartEntryModelProducer,
         startAxis = rememberStartAxis(
             valueFormatter = { value, _ -> String.format("%.0f", value) },
-            itemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Vertical.default(maxItemCount = 5)
+            itemPlacer = verticalItemPlacer
         ),
         bottomAxis = rememberBottomAxis(
             valueFormatter = horizontalAxisValueFormatter,
