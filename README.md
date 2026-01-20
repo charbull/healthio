@@ -21,7 +21,7 @@
 *   **Language:** Kotlin
 *   **UI:** Jetpack Compose (Material 3)
 *   **Architecture:** MVVM
-*   **AI:** Google Gemini 1.5 Flash (via Generative AI SDK)
+*   **AI:** Google gemini-2.5-flash-lite (via Generative AI SDK)
 *   **Local Data:** Room Database
 *   **Sync:** Google Sheets API (v4) & Google Sign-In
 *   **Scheduling:** WorkManager
