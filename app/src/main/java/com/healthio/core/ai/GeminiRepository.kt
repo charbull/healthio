@@ -16,10 +16,16 @@ class GeminiRepository {
             apiKey = apiKey
         )
 
-        val contextString = if (!userContext.isNullOrEmpty()) "User provided context: \"$userContext\"" else ""
+        val contextString = if (!userContext.isNullOrEmpty()) {
+            "IMPORTANT - User Context: \"$userContext\". The user has explicitly identified or described the food. Use this information to override visual assumptions (e.g., 'cauliflower rice' vs 'white rice')."
+        } else {
+            ""
+        }
 
         val prompt = """
-            Analyze this food image. $contextString
+            Analyze this food image.
+            $contextString
+            
             Identify the main dish.
             Estimate calories and macros (Protein, Carbs, Fat) for the visible portion.
             Provide a health score from 1 (Unhealthy) to 10 (Very Healthy).
