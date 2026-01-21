@@ -36,7 +36,7 @@ fun SettingsScreen(
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
-        .requestScopes(Scope(SheetsScopes.DRIVE_FILE), Scope(SheetsScopes.SPREADSHEETS))
+        .requestScopes(Scope(SheetsScopes.DRIVE_FILE))
         .build()
 
     val googleSignInClient = GoogleSignIn.getClient(context, gso)
@@ -129,6 +129,26 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+                        
+                        // Privacy Note
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "🔒 Privacy First",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Healthio only requests access to files it creates. We cannot see or modify your other Google Drive files.",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+
                         Button(
                             onClick = { launcher.launch(googleSignInClient.signInIntent) }
                         ) {

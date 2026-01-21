@@ -45,7 +45,7 @@ class BackupWorker(
 
             val credential = GoogleAccountCredential.usingOAuth2(
                 context,
-                listOf(SheetsScopes.DRIVE_FILE, SheetsScopes.SPREADSHEETS)
+                listOf(SheetsScopes.DRIVE_FILE)
             ).setSelectedAccountName(email)
 
             val service = Sheets.Builder(

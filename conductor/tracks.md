@@ -36,7 +36,7 @@
 | 20 | Compact Home UI v2 | **Completed** | [View Track](./tracks/track-20-compact-home-ui-v2/index.md) |
 | 21 | Timer Inside Circle | **Completed** | [View Track](./tracks/track-21-timer-inside-circle/index.md) |
 | 22 | Smart Reminders | **Completed** | [View Track](./tracks/track-22-smart-reminders/index.md) |
-| 23 | Privacy-Focused Sync | **Planned** | [View Track](./tracks/track-23-privacy-sync/index.md) |
+| 23 | Privacy-Focused Sync | **Completed** | [View Track](./tracks/track-23-privacy-sync/index.md) |
 | 24 | Fix Missing History Data | **Completed** | [View Track](./tracks/track-24-fix-missing-history/index.md) |
 | 25 | Regression Tests for History | **Completed** | [View Track](./tracks/track-25-regression-tests-history/index.md) |
 | 26 | Project Documentation | **Completed** | [View Track](./tracks/track-26-documentation/index.md) |

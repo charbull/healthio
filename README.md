@@ -12,7 +12,7 @@
 *   **Smart Vision (AI Nutritionist):** Snap a photo of your meal, and Healthio (powered by Gemini AI) analyzes it to estimate calories, macros, and provide a health score with feedback.
 *   **Energy Dashboard:** Track your daily Calorie Intake vs. Burned Calories in a simple, unified view.
 *   **Smart Reminders:** Intelligent notifications remind you to log meals (Breakfast, Lunch, Dinner) or workouts only if you haven't already.
-*   **Privacy-First Sync:** Your data belongs to you. Healthio syncs directly to a Google Sheet in your personal Drive, giving you full control and raw access to your logs.
+*   **Privacy-First Sync:** Securely sync your data to a Google Sheet in your personal Drive. Using the restricted `drive.file` scope, Healthio only interacts with its own files, keeping the rest of your Drive completely private.
 *   **Workout Logging:** Log workouts manually or sync (future) to keep track of your active energy burn.
 *   **Historical Stats:** Visualize your progress with beautiful charts for Fasting consistency, Workout frequency, and Nutrition trends over the Week, Month, and Year.
 
@@ -35,7 +35,11 @@
 
 ## Privacy
 
-Healthio is designed with privacy in mind. It requests the minimum necessary permissions and syncs data to a specific file in your Google Drive, ensuring it cannot access your other personal documents.
+Healthio is built on the principle of least privilege. 
+
+*   **Restricted Data Access:** The app uses the `https://www.googleapis.com/auth/drive.file` scope, meaning it can **only** access files it creates or that you explicitly open with it. It has zero visibility into your other personal Google Drive documents.
+*   **Data Sovereignty:** Your data stays in your personal Google Drive account in raw spreadsheet format. You own it, and you can export or delete it at any time.
+*   **Local-First:** All health data is stored locally in a Room database before being synced, ensuring the app remains functional even offline.
 
 ---
 *Built with ❤️ for a healthier lifestyle.*
