@@ -8,17 +8,19 @@ object StatsUtils {
     fun getBucketIndex(date: LocalDate, range: TimeRange, today: LocalDate): Pair<Int, Boolean> {
         return when (range) {
             TimeRange.Week -> {
-                // Determine the Mon-Sun of the current week
+                // Determine the Mon-Sun of the current week relative to 'today'
                 val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                val endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+                val endOfWeek = startOfWeek.plusDays(6)
                 val isThisWeek = !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek)
                 Pair(date.dayOfWeek.value, isThisWeek)
             }
             TimeRange.Month -> {
-                Pair(date.dayOfMonth, date.year == today.year && date.monthValue == today.monthValue)
+                val isThisMonth = date.year == today.year && date.monthValue == today.monthValue
+                Pair(date.dayOfMonth, isThisMonth)
             }
             TimeRange.Year -> {
-                Pair(date.monthValue, date.year == today.year)
+                val isThisYear = date.year == today.year
+                Pair(date.monthValue, isThisYear)
             }
         }
     }

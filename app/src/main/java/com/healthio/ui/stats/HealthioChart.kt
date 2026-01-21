@@ -52,7 +52,11 @@ fun HealthioChart(
 
     val maxValue = series.flatten().maxByOrNull { it.y }?.y ?: 0f
     val verticalItemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Vertical.default(
-        maxItemCount = if (maxValue > 0f && maxValue <= 5f) (maxValue.toInt() + 1) else 5
+        maxItemCount = when {
+            maxValue <= 0f -> 5
+            maxValue <= 5f -> (maxValue.toInt() + 1).coerceAtLeast(2)
+            else -> 5
+        }
     )
 
     Chart(
@@ -69,11 +73,17 @@ fun HealthioChart(
         chartModelProducer = chartEntryModelProducer,
         startAxis = rememberStartAxis(
             valueFormatter = { value, _ -> String.format("%.0f", value) },
-            itemPlacer = verticalItemPlacer
+            itemPlacer = verticalItemPlacer,
+            guideline = null
         ),
         bottomAxis = rememberBottomAxis(
             valueFormatter = horizontalAxisValueFormatter,
-            guideline = null
+            guideline = null,
+            itemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Horizontal.default(
+                spacing = if (isDense) 5 else 1,
+                offset = 0,
+                shiftExtremeTicks = false
+            )
         ),
         modifier = modifier
     )
