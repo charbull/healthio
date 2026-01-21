@@ -28,6 +28,8 @@ class GeminiRepository {
             
             Identify the main dish.
             Estimate calories and macros (Protein, Carbs, Fat) for the visible portion.
+            Estimate dietary Fiber (in grams) for Net Carb calculation.
+            Estimate an Insulin Index Score (0-100), where 0 is no impact (water) and 100 is pure glucose/jelly beans.
             Provide a health score from 1 (Unhealthy) to 10 (Very Healthy).
             
             Keto Rule: If the dish is high in carbohydrates (generally >15g net carbs) or not keto-friendly, 
@@ -35,7 +37,7 @@ class GeminiRepository {
             
             Provide a short feedback (1-3 sentences).
             
-            Return ONLY raw JSON with keys: foodName, calories, protein, carbs, fat, healthScore, feedback.
+            Return ONLY raw JSON with keys: foodName, calories, protein, carbs, fat, fiber, insulinScore, healthScore, feedback.
             Do not use markdown formatting.
         """.trimIndent()
 

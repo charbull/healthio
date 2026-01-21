@@ -72,7 +72,9 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
                     calories = analysis.calories,
                     protein = analysis.protein,
                     carbs = analysis.carbs,
-                    fat = analysis.fat
+                    fat = analysis.fat,
+                    fiber = analysis.fiber,
+                    insulinScore = analysis.insulinScore
                 )
             )
             // After saving, reset to Idle to scan again

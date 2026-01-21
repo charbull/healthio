@@ -43,3 +43,4 @@
 | 27 | Fix App Icon | **Discarded** | [View Track](./tracks/track-27-fix-app-icon/index.md) |
 | 28 | Chart & Stats Polish | **Completed** | [View Track](./tracks/track-28-stats-polish/index.md) |
 | 29 | Debug Universal Stats & X-Axis | **Completed** | [View Track](./tracks/track-29-debug-workout-stats/index.md) |
+| 31 | Keto & Insulin Insights | **Completed** | [View Track](./tracks/track-31-keto-insulin-insights/index.md) |

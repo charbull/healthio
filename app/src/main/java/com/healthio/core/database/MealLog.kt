@@ -12,6 +12,8 @@ data class MealLog(
     val protein: Int,
     val carbs: Int,
     val fat: Int,
+    val fiber: Int = 0, // Default for migration
+    val insulinScore: Int = 0, // Default for migration
     val imagePath: String? = null,
     val isSynced: Boolean = false
 )

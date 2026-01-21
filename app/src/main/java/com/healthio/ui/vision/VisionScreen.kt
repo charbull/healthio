@@ -362,7 +362,46 @@ fun ResultContent(
             MacroBar(label = "Fat", value = analysis.fat, unit = "g", max = 50, color = Color(0xFFE91E63))
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Keto Impact Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Keto Impact",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    val netCarbs = (analysis.carbs - analysis.fiber).coerceAtLeast(0)
+                    KetoStat(
+                        label = "Net Carbs", 
+                        value = "${netCarbs}g", 
+                        subtext = "${analysis.fiber}g fiber",
+                        isGood = netCarbs <= 15
+                    )
+                    
+                    val insulinLabel = when {
+                        analysis.insulinScore < 35 -> "Low"
+                        analysis.insulinScore < 65 -> "Medium"
+                        else -> "High"
+                    }
+                    KetoStat(
+                        label = "Insulin Impact", 
+                        value = "${analysis.insulinScore}/100", 
+                        subtext = insulinLabel,
+                        isGood = analysis.insulinScore < 40
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
         
         Card(
             modifier = Modifier.fillMaxWidth().weight(1f),
@@ -398,6 +437,26 @@ fun ResultContent(
             ) {
                 Text("Yep, I'm eating that")
             }
+        }
+    }
+}
+
+@Composable
+fun KetoStat(label: String, value: String, subtext: String, isGood: Boolean) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.labelMedium)
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = if (isGood) Color(0xFF2E7D32) else Color(0xFFC62828) // Dark Green vs Dark Red
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = subtext,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
         }
     }
 }
