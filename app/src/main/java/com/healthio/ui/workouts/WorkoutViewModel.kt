@@ -128,8 +128,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 }
 
                 // 3. Sync Weights
-                // Scan last 30 days for weight
-                val weightStart = today.minusDays(30).atStartOfDay(zoneId).toInstant()
+                // Scan last 365 days for weight to catch historical data
+                val weightStart = today.minusDays(365).atStartOfDay(zoneId).toInstant()
                 val weights = healthConnectManager.fetchWeights(weightStart, now)
                 val existingWeightIds = weightRepository.getImportedExternalIds().toSet()
                 
@@ -148,20 +148,21 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                // Result Message
+                // Construct Result Message
                 val parts = mutableListOf<String>()
                 if (addedWorkoutsCount > 0) parts.add("$addedWorkoutsCount workouts")
-                if (adjustmentValue > 0) parts.add("Active Calorie update")
+                if (adjustmentValue > 0) parts.add("active kcal update")
+                
                 if (weights.isNotEmpty()) {
-                    parts.add("$addedWeightCount new weights (found ${weights.size})")
+                    parts.add("$addedWeightCount new weights (out of ${weights.size} in HC)")
                 } else {
-                    parts.add("0 weights found")
+                    parts.add("0 weights found in HC")
                 }
                 
                 if (parts.isNotEmpty()) {
                     _syncState.value = WorkoutSyncState.Success("Imported: ${parts.joinToString(", ")}")
                 } else {
-                    _syncState.value = WorkoutSyncState.Success("No new data found")
+                    _syncState.value = WorkoutSyncState.Success("Sync finished: No new data found")
                 }
             } catch (e: Exception) {
                 _syncState.value = WorkoutSyncState.Error("Sync failed: ${e.message}")
