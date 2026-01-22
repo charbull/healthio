@@ -15,3 +15,4 @@
         -   Wire it to `viewModel.syncFromHealthConnect()`.
 - [x] **Permissions:**
     - [x] Ensure `HomeScreen.kt` handles the permission launcher.
+    - [x] Update `AndroidManifest.xml` with Health Connect permissions.
