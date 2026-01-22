@@ -68,10 +68,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val zoneId = ZoneId.systemDefault()
                 val today = LocalDate.now(zoneId)
-                val startOfDay = today.atStartOfDay(zoneId).toInstant()
                 val now = Instant.now()
+                
+                // Scan last 7 days to catch up on missed logs
+                val startOfScan = today.minusDays(7).atStartOfDay(zoneId).toInstant()
 
-                val workouts = healthConnectManager.fetchWorkouts(startOfDay, now)
+                val workouts = healthConnectManager.fetchWorkouts(startOfScan, now)
                 val existingIds = repository.getImportedExternalIds().toSet()
 
                 var addedWorkoutsCount = 0
@@ -91,12 +93,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                // Pull total active calories for the day
-                var totalActiveBurn = healthConnectManager.fetchActiveCalories(startOfDay, now)
+                // Pull total active calories for TODAY only (to update dashboard)
+                // We don't backfill "Daily Active Burn" for past days to avoid complexity, unless requested.
+                // But for simplicity, let's keep daily burn update for today.
+                val startOfToday = today.atStartOfDay(zoneId).toInstant()
+                var totalActiveBurn = healthConnectManager.fetchActiveCalories(startOfToday, now)
                 
                 // Fallback: If active burn is 0, check Total Calories
                 if (totalActiveBurn == 0) {
-                    val totalBurn = healthConnectManager.fetchTotalCalories(startOfDay, now)
+                    val totalBurn = healthConnectManager.fetchTotalCalories(startOfToday, now)
                     if (totalBurn > 0) {
                         // Estimate active burn as Total - partial BMR (very rough estimate for debug)
                         // This helps identify if Garmin is only writing Total
