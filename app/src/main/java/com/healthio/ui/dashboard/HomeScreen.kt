@@ -56,6 +56,8 @@ fun HomeScreen(
         // Retry sync if permissions granted
         if (granted.isNotEmpty()) { 
             workoutViewModel.syncFromHealthConnect() 
+        } else {
+            Toast.makeText(context, "Health Connect permissions denied", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -92,6 +94,9 @@ fun HomeScreen(
                 val permissions = HealthConnectManager(context).permissions
                 healthConnectPermissionLauncher.launch(permissions)
                 workoutViewModel.resetSyncState()
+            }
+            is WorkoutSyncState.Loading -> {
+                Toast.makeText(context, "Syncing...", Toast.LENGTH_SHORT).show()
             }
             else -> {}
         }

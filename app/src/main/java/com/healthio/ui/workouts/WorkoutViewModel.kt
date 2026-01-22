@@ -17,6 +17,7 @@ import androidx.health.connect.client.HealthConnectClient
 
 sealed class WorkoutSyncState {
     object Idle : WorkoutSyncState()
+    object Loading : WorkoutSyncState()
     object PermissionRequired : WorkoutSyncState()
     data class Success(val message: String) : WorkoutSyncState()
     data class Error(val message: String) : WorkoutSyncState()
@@ -46,6 +47,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun syncFromHealthConnect() {
         viewModelScope.launch {
+            _syncState.value = WorkoutSyncState.Loading
+            
             val status = healthConnectManager.getSdkStatus()
             if (status != HealthConnectClient.SDK_AVAILABLE) {
                 val errorMsg = when (status) {
