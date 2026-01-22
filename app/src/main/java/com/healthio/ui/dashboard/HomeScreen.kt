@@ -2,8 +2,12 @@ package com.healthio.ui.dashboard
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -53,17 +57,33 @@ fun HomeScreen(
     val healthConnectPermissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
-        // Retry sync if permissions granted
-        if (granted.isNotEmpty()) { 
+        val required = HealthConnectManager(context).permissions
+        if (granted.containsAll(required)) { 
             workoutViewModel.syncFromHealthConnect() 
         } else {
-            Toast.makeText(context, "Health Connect permissions denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Permissions missing. Opening Settings...", Toast.LENGTH_LONG).show()
+            // Fallback: Open Health Connect settings specifically or App Settings
+            try {
+                // Try specific Health Connect settings
+                val intent = Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS")
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(intent)
+                } else {
+                    // Fallback to App Details
+                    val appIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(appIntent)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Unable to open settings", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     // Permission for Notifications
-    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
         onResult = { }
     )
     LaunchedEffect(Unit) {
