@@ -5,6 +5,7 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Duration
@@ -34,13 +35,26 @@ class HealthConnectManager(private val context: Context) {
 
     val permissions = setOf(
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-        HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class)
+        HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)
     )
 
     suspend fun hasPermissions(): Boolean {
         val client = getClient() ?: return false
         val granted = client.permissionController.getGrantedPermissions()
         return granted.containsAll(permissions)
+    }
+
+    suspend fun fetchActiveCalories(startTime: Instant, endTime: Instant): Int {
+        val client = getClient() ?: return 0
+        if (!hasPermissions()) return 0
+        
+        val request = ReadRecordsRequest(
+            recordType = ActiveCaloriesBurnedRecord::class,
+            timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
+        )
+        return client.readRecords(request).records
+            .sumOf { it.energy.inKilocalories.toInt() }
     }
 
     suspend fun fetchWorkouts(startTime: Instant, endTime: Instant): List<HCWorkout> {

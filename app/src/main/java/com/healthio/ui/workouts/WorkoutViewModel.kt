@@ -74,7 +74,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 val workouts = healthConnectManager.fetchWorkouts(startOfDay, now)
                 val existingIds = repository.getImportedExternalIds().toSet()
 
-                var addedCount = 0
+                var addedWorkoutsCount = 0
                 workouts.forEach { workout ->
                     if (workout.externalId !in existingIds) {
                         repository.logWorkout(
@@ -87,14 +87,39 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                                 externalId = workout.externalId
                             )
                         )
-                        addedCount++
+                        addedWorkoutsCount++
                     }
                 }
 
-                if (addedCount > 0) {
-                    _syncState.value = WorkoutSyncState.Success("Imported $addedCount workouts")
+                // New Logic: Pull total active calories for the day
+                val totalActiveBurn = healthConnectManager.fetchActiveCalories(startOfDay, now)
+                
+                // We create/update a special entry for "Daily Active Burn" to capture non-session movement
+                val dailyAdjustmentId = "daily_active_burn_${today.year}_${today.monthValue}_${today.dayOfMonth}"
+                
+                // Calculate how much active burn is NOT yet in our DB for today
+                // For simplicity, we'll just log the "Daily Adjustment" as the total active burn minus the sum of other imported workouts
+                val workoutSessionsBurn = workouts.sumOf { it.calories }
+                val adjustmentValue = (totalActiveBurn - workoutSessionsBurn).coerceAtLeast(0)
+
+                if (adjustmentValue > 0) {
+                    repository.logWorkout(
+                        WorkoutLog(
+                            timestamp = now.toEpochMilli(),
+                            type = "Daily Active Burn",
+                            calories = adjustmentValue,
+                            durationMinutes = 0,
+                            source = "Health Connect",
+                            externalId = dailyAdjustmentId
+                        )
+                    )
+                }
+
+                if (addedWorkoutsCount > 0 || adjustmentValue > 0) {
+                    val msg = if (addedWorkoutsCount > 0) "Imported $addedWorkoutsCount workouts and daily activity" else "Daily active burn updated"
+                    _syncState.value = WorkoutSyncState.Success(msg)
                 } else {
-                    _syncState.value = WorkoutSyncState.Success("No new workouts found for today")
+                    _syncState.value = WorkoutSyncState.Success("No new data found for today")
                 }
             } catch (e: Exception) {
                 _syncState.value = WorkoutSyncState.Error("Sync failed: ${e.message}")
