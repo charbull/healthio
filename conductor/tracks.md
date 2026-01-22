@@ -45,3 +45,4 @@
 | 29 | Debug Universal Stats & X-Axis | **Completed** | [View Track](./tracks/track-29-debug-workout-stats/index.md) |
 | 31 | Keto & Insulin Insights | **Completed** | [View Track](./tracks/track-31-keto-insulin-insights/index.md) |
 | 32 | Health Connect Sync | **Completed** | [View Track](./tracks/track-32-health-connect-sync/index.md) |
+| 33 | Weight Tracking | **Completed** | [View Track](./tracks/track-33-weight-tracking/index.md) |

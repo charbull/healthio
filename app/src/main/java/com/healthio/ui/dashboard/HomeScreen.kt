@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -288,11 +289,40 @@ fun HomeScreen(
                 onAddMeal = { showAddMealDialog = true }
             )
             
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Weight Section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(text = "Current Weight", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = if (uiState.currentWeight != null) "${uiState.currentWeight} kg" else "-- kg",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Weight",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
+// ... (Rest of file remains unchanged, checking length)
 @Composable
 fun FastingSection(
     uiState: HomeUiState,

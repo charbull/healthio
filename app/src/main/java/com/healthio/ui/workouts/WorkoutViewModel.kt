@@ -3,8 +3,12 @@ package com.healthio.ui.workouts
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.healthio.core.database.WeightLog
 import com.healthio.core.database.WorkoutLog
+import com.healthio.core.data.WeightRepository
 import com.healthio.core.data.WorkoutRepository
+import com.healthio.core.health.HealthConnectManager
+import androidx.health.connect.client.HealthConnectClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,8 +16,6 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import com.healthio.core.health.HealthConnectManager
-import androidx.health.connect.client.HealthConnectClient
 
 sealed class WorkoutSyncState {
     object Idle : WorkoutSyncState()
@@ -25,6 +27,7 @@ sealed class WorkoutSyncState {
 
 class WorkoutViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WorkoutRepository(application)
+    private val weightRepository = WeightRepository(application)
     private val healthConnectManager = HealthConnectManager(application)
 
     private val _syncState = MutableStateFlow<WorkoutSyncState>(WorkoutSyncState.Idle)
@@ -68,11 +71,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val zoneId = ZoneId.systemDefault()
                 val today = LocalDate.now(zoneId)
-                val now = Instant.now()
                 
                 // Scan last 7 days to catch up on missed logs
                 val startOfScan = today.minusDays(7).atStartOfDay(zoneId).toInstant()
+                val now = Instant.now()
 
+                // 1. Sync Workouts
                 val workouts = healthConnectManager.fetchWorkouts(startOfScan, now)
                 val existingIds = repository.getImportedExternalIds().toSet()
 
@@ -93,9 +97,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                // Pull total active calories for TODAY only (to update dashboard)
-                // We don't backfill "Daily Active Burn" for past days to avoid complexity, unless requested.
-                // But for simplicity, let's keep daily burn update for today.
+                // 2. Sync Active Calories (Daily Burn)
                 val startOfToday = today.atStartOfDay(zoneId).toInstant()
                 var totalActiveBurn = healthConnectManager.fetchActiveCalories(startOfToday, now)
                 
@@ -104,8 +106,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     val totalBurn = healthConnectManager.fetchTotalCalories(startOfToday, now)
                     if (totalBurn > 0) {
                         // Estimate active burn as Total - partial BMR (very rough estimate for debug)
-                        // This helps identify if Garmin is only writing Total
-                        totalActiveBurn = (totalBurn / 4) // Placeholder for 'some' active burn
+                        totalActiveBurn = (totalBurn / 4) 
                     }
                 }
                 
@@ -126,8 +127,42 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
 
-                val msg = "Sync successful: Found ${workouts.size} workouts, $totalActiveBurn active kcal"
-                _syncState.value = WorkoutSyncState.Success(msg)
+                // 3. Sync Weights
+                // Scan last 30 days for weight
+                val weightStart = today.minusDays(30).atStartOfDay(zoneId).toInstant()
+                val weights = healthConnectManager.fetchWeights(weightStart, now)
+                val existingWeightIds = weightRepository.getImportedExternalIds().toSet()
+                
+                var addedWeightCount = 0
+                weights.forEach { weight ->
+                    if (weight.externalId !in existingWeightIds) {
+                        weightRepository.logWeight(
+                            WeightLog(
+                                timestamp = weight.timestamp.toEpochMilli(),
+                                valueKg = weight.valueKg.toFloat(),
+                                source = "Health Connect",
+                                externalId = weight.externalId
+                            )
+                        )
+                        addedWeightCount++
+                    }
+                }
+
+                // Result Message
+                val parts = mutableListOf<String>()
+                if (addedWorkoutsCount > 0) parts.add("$addedWorkoutsCount workouts")
+                if (adjustmentValue > 0) parts.add("Active Calorie update")
+                if (weights.isNotEmpty()) {
+                    parts.add("$addedWeightCount new weights (found ${weights.size})")
+                } else {
+                    parts.add("0 weights found")
+                }
+                
+                if (parts.isNotEmpty()) {
+                    _syncState.value = WorkoutSyncState.Success("Imported: ${parts.joinToString(", ")}")
+                } else {
+                    _syncState.value = WorkoutSyncState.Success("No new data found")
+                }
             } catch (e: Exception) {
                 _syncState.value = WorkoutSyncState.Error("Sync failed: ${e.message}")
             }

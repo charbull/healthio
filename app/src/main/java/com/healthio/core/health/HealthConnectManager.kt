@@ -7,6 +7,7 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
+import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Duration
@@ -18,6 +19,12 @@ data class HCWorkout(
     val type: Int,
     val durationMinutes: Int,
     val calories: Int
+)
+
+data class HCWeight(
+    val externalId: String,
+    val timestamp: Instant,
+    val valueKg: Double
 )
 
 class HealthConnectManager(private val context: Context) {
@@ -38,7 +45,8 @@ class HealthConnectManager(private val context: Context) {
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
         HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
         HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-        HealthPermission.getReadPermission(BasalMetabolicRateRecord::class)
+        HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
+        HealthPermission.getReadPermission(WeightRecord::class)
     )
 
     suspend fun hasPermissions(): Boolean {
@@ -109,6 +117,23 @@ class HealthConnectManager(private val context: Context) {
                 type = session.exerciseType,
                 durationMinutes = Duration.between(session.startTime, session.endTime).toMinutes().toInt(),
                 calories = calories
+            )
+        }
+    }
+
+    suspend fun fetchWeights(startTime: Instant, endTime: Instant): List<HCWeight> {
+        val client = getClient() ?: return emptyList()
+        if (!hasPermissions()) return emptyList()
+
+        val request = ReadRecordsRequest(
+            recordType = WeightRecord::class,
+            timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
+        )
+        return client.readRecords(request).records.map { record ->
+            HCWeight(
+                externalId = record.metadata.id,
+                timestamp = record.time,
+                valueKg = record.weight.inKilograms
             )
         }
     }
