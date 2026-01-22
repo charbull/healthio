@@ -139,32 +139,37 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include && index in 1..bucketCount) {
-                        dailyCounts[index] = (dailyCounts[index] ?: 0f) + 1f
+                        // Only count actual workouts for the chart frequency, ignore daily adjustments
+                        if (log.type != "Daily Active Burn") {
+                            dailyCounts[index] = (dailyCounts[index] ?: 0f) + 1f
+                        }
                     }
                 }
                 seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyCounts[it] ?: 0f) })
                 
                 // Recalculate filtered lists for frequency stats
                 val weekSessions = allWorkoutLogs.count { 
-                    StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Week, today).second 
+                    it.type != "Daily Active Burn" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Week, today).second 
                 }
                 val monthSessions = allWorkoutLogs.count { 
-                    StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Month, today).second 
+                    it.type != "Daily Active Burn" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Month, today).second 
                 }
                 val yearSessions = allWorkoutLogs.count { 
-                    StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Year, today).second 
+                    it.type != "Daily Active Burn" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Year, today).second 
                 }
 
+                val realSessions = filteredWorkouts.filter { it.type != "Daily Active Burn" }
+
                 _workoutDetails.value = WorkoutSummary(
-                    sessions = filteredWorkouts.size,
-                    calories = filteredWorkouts.sumOf { it.calories },
-                    minutes = filteredWorkouts.sumOf { it.durationMinutes },
+                    sessions = realSessions.size,
+                    calories = filteredWorkouts.sumOf { it.calories }, // Sum ALL calories including adjustments
+                    minutes = realSessions.sumOf { it.durationMinutes },
                     sessionsWeek = weekSessions,
                     sessionsMonth = monthSessions,
                     sessionsYear = yearSessions
                 )
                 _summaryTitle.value = "Workout Activity"
-                _summaryValue.value = "${filteredWorkouts.size} sessions"
+                _summaryValue.value = "${realSessions.size} sessions"
             }
             StatType.Calories -> {
                 val dailyTotals = mutableMapOf<Int, Float>()
