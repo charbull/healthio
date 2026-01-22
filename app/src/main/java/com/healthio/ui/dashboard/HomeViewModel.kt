@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -67,7 +68,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 baseBurnFlow
             ) { isFasting, startTime, calories, burned, baseBurn ->
                 Pentuple(isFasting, startTime, calories, burned, baseBurn)
-            }.combine(weightRepository.getLatestWeight()) { pentuple, weight ->
+            }.combine(weightRepository.getLatestWeight().onStart { emit(null) }) { pentuple, weight ->
                 updateState(pentuple.first, pentuple.second, pentuple.third, pentuple.fourth, pentuple.fifth, weight?.valueKg)
             }.collect { }
         }
@@ -78,7 +79,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?, burned: Int?, baseBurn: Int, weight: Float?) {
         lastActiveBurned = burned ?: 0
-        // ... (rest of updateState)
+        val calendar = java.util.Calendar.getInstance()
+        val hoursPassed = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        val minutesPassed = calendar.get(java.util.Calendar.MINUTE)
+        val dayProgress = (hoursPassed * 60 + minutesPassed) / 1440f
+        
+        val dynamicBaseBurn = (baseBurn * dayProgress).toInt()
+
+        _uiState.value = _uiState.value.copy(
+            timerState = if (isFasting) TimerState.FASTING else TimerState.EATING,
+            startTime = startTime,
+            todayCalories = calories ?: 0,
+            todayBurnedCalories = lastActiveBurned + dynamicBaseBurn,
+            baseDailyBurn = baseBurn,
+            currentWeight = weight
+        )
+        calculateProgress()
     }
 
     data class Pentuple<A, B, C, D, E>(val first: A, val second: B, val third: C, val fourth: D, val fifth: E)
