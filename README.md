@@ -13,7 +13,8 @@
 *   **Energy Dashboard:** Track your daily Calorie Intake vs. Burned Calories in a simple, unified view.
 *   **Smart Reminders:** Intelligent notifications remind you to log meals (Breakfast, Lunch, Dinner) or workouts only if you haven't already.
 *   **Privacy-First Sync:** Securely sync your data to a Google Sheet in your personal Drive. Using the restricted `drive.file` scope, Healthio only interacts with its own files, keeping the rest of your Drive completely private.
-*   **Workout Logging:** Log workouts manually or sync (future) to keep track of your active energy burn.
+*   **Health Connect Integration:** Seamlessly import workout data (active calories, duration) from wearables like Garmin, Samsung Watch, or Pixel Watch via Google Health Connect.
+*   **Workout Logging:** Log workouts manually or sync to keep track of your active energy burn.
 *   **Historical Stats:** Visualize your progress with beautiful charts for Fasting consistency, Workout frequency, and Nutrition trends over the Week, Month, and Year.
 
 ## Tech Stack

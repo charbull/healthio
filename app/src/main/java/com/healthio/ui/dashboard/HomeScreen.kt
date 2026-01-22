@@ -3,6 +3,7 @@ package com.healthio.ui.dashboard
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,9 @@ import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
 import java.util.Calendar
 
+import androidx.health.connect.client.PermissionController
+import com.healthio.core.health.HealthConnectManager
+
 @Composable
 fun HomeScreen(
     onNavigateToStats: () -> Unit,
@@ -44,6 +48,16 @@ fun HomeScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val workoutSyncState by workoutViewModel.syncState.collectAsState()
     val context = LocalContext.current
+
+    // Health Connect Permission Launcher
+    val healthConnectPermissionLauncher = rememberLauncherForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        // Retry sync if permissions granted
+        if (granted.isNotEmpty()) { 
+            workoutViewModel.syncFromHealthConnect() 
+        }
+    }
 
     // Permission for Notifications
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -65,12 +79,21 @@ fun HomeScreen(
 
     // Sync State Feedback
     LaunchedEffect(workoutSyncState) {
-        if (workoutSyncState is WorkoutSyncState.Success) {
-            Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Success).message, Toast.LENGTH_SHORT).show()
-            workoutViewModel.resetSyncState()
-        } else if (workoutSyncState is WorkoutSyncState.Error) {
-            Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Error).message, Toast.LENGTH_LONG).show()
-            workoutViewModel.resetSyncState()
+        when (workoutSyncState) {
+            is WorkoutSyncState.Success -> {
+                Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Success).message, Toast.LENGTH_SHORT).show()
+                workoutViewModel.resetSyncState()
+            }
+            is WorkoutSyncState.Error -> {
+                Toast.makeText(context, (workoutSyncState as WorkoutSyncState.Error).message, Toast.LENGTH_LONG).show()
+                workoutViewModel.resetSyncState()
+            }
+            is WorkoutSyncState.PermissionRequired -> {
+                val permissions = HealthConnectManager(context).permissions
+                healthConnectPermissionLauncher.launch(permissions)
+                workoutViewModel.resetSyncState()
+            }
+            else -> {}
         }
     }
 
@@ -134,6 +157,9 @@ fun HomeScreen(
             onDismiss = { showWorkoutDialog = false },
             onManualLog = { type, duration, calories, ts ->
                 workoutViewModel.logManualWorkout(type, duration, calories, ts)
+            },
+            onSyncHealthConnect = {
+                workoutViewModel.syncFromHealthConnect()
             }
         )
     }

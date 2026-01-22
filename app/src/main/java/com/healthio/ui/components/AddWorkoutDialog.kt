@@ -23,7 +23,8 @@ import java.util.Calendar
 @Composable
 fun AddWorkoutDialog(
     onDismiss: () -> Unit,
-    onManualLog: (String, Int, Int, Long) -> Unit
+    onManualLog: (String, Int, Int, Long) -> Unit,
+    onSyncHealthConnect: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var type by remember { mutableStateOf("Running") }
@@ -43,6 +44,20 @@ fun AddWorkoutDialog(
         title = { Text("Log Workout") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (onSyncHealthConnect != null) {
+                    OutlinedButton(
+                        onClick = {
+                            onSyncHealthConnect()
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Sync from Health Connect")
+                    }
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text("Or Manual Entry", style = MaterialTheme.typography.labelMedium)
+                }
+
                 Text("Activity Type", style = MaterialTheme.typography.labelLarge)
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
