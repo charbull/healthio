@@ -62,25 +62,63 @@ class MainActivity : ComponentActivity() {
 
 
 
-        setContent {
+                setContent {
 
-            HealthioTheme {
 
-                Surface(
 
-                    modifier = Modifier.fillMaxSize(),
+                    HealthioTheme {
 
-                    color = MaterialTheme.colorScheme.background
 
-                ) {
 
-                    if (isRationale) {
+                        Surface(
 
-                        HealthConnectRationaleScreen { finish() }
 
-                    } else {
 
-                        val navController = rememberNavController()
+                            modifier = Modifier.fillMaxSize(),
+
+
+
+                            color = MaterialTheme.colorScheme.background
+
+
+
+                        ) {
+
+
+
+                            if (isRationale) {
+
+
+
+                                // Debug feedback
+
+
+
+                                androidx.compose.runtime.LaunchedEffect(Unit) {
+
+
+
+                                    android.widget.Toast.makeText(this@MainActivity, "Showing Health Connect Rationale", android.widget.Toast.LENGTH_SHORT).show()
+
+
+
+                                }
+
+
+
+                                HealthConnectRationaleScreen { finish() }
+
+
+
+                            } else {
+
+
+
+                                val navController = rememberNavController()
+
+
+
+        
 
                         
 

@@ -36,7 +36,6 @@
                 <action android:name="android.health.connect.action.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
             
-            <meta-data android:name="health_connect_permission_rationale_activity_name" android:value=".MainActivity" />
         </activity>
         
         <!-- Dedicated Rationale Activity if the system prefers it -->
