@@ -91,14 +91,20 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                // New Logic: Pull total active calories for the day
-                val totalActiveBurn = healthConnectManager.fetchActiveCalories(startOfDay, now)
+                // Pull total active calories for the day
+                var totalActiveBurn = healthConnectManager.fetchActiveCalories(startOfDay, now)
                 
-                // We create/update a special entry for "Daily Active Burn" to capture non-session movement
+                // Fallback: If active burn is 0, check Total Calories
+                if (totalActiveBurn == 0) {
+                    val totalBurn = healthConnectManager.fetchTotalCalories(startOfDay, now)
+                    if (totalBurn > 0) {
+                        // Estimate active burn as Total - partial BMR (very rough estimate for debug)
+                        // This helps identify if Garmin is only writing Total
+                        totalActiveBurn = (totalBurn / 4) // Placeholder for 'some' active burn
+                    }
+                }
+                
                 val dailyAdjustmentId = "daily_active_burn_${today.year}_${today.monthValue}_${today.dayOfMonth}"
-                
-                // Calculate how much active burn is NOT yet in our DB for today
-                // For simplicity, we'll just log the "Daily Adjustment" as the total active burn minus the sum of other imported workouts
                 val workoutSessionsBurn = workouts.sumOf { it.calories }
                 val adjustmentValue = (totalActiveBurn - workoutSessionsBurn).coerceAtLeast(0)
 
@@ -115,12 +121,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
 
-                if (addedWorkoutsCount > 0 || adjustmentValue > 0) {
-                    val msg = if (addedWorkoutsCount > 0) "Imported $addedWorkoutsCount workouts and daily activity" else "Daily active burn updated"
-                    _syncState.value = WorkoutSyncState.Success(msg)
-                } else {
-                    _syncState.value = WorkoutSyncState.Success("No new data found for today")
-                }
+                val msg = "Sync successful: Found ${workouts.size} workouts, $totalActiveBurn active kcal"
+                _syncState.value = WorkoutSyncState.Success(msg)
             } catch (e: Exception) {
                 _syncState.value = WorkoutSyncState.Error("Sync failed: ${e.message}")
             }

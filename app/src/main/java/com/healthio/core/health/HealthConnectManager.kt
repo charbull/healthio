@@ -6,6 +6,7 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Duration
@@ -36,7 +37,8 @@ class HealthConnectManager(private val context: Context) {
     val permissions = setOf(
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
         HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
-        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)
+        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+        HealthPermission.getReadPermission(BasalMetabolicRateRecord::class)
     )
 
     suspend fun hasPermissions(): Boolean {
@@ -55,6 +57,32 @@ class HealthConnectManager(private val context: Context) {
         )
         return client.readRecords(request).records
             .sumOf { it.energy.inKilocalories.toInt() }
+    }
+
+    suspend fun fetchTotalCalories(startTime: Instant, endTime: Instant): Int {
+        val client = getClient() ?: return 0
+        if (!hasPermissions()) return 0
+        
+        val request = ReadRecordsRequest(
+            recordType = TotalCaloriesBurnedRecord::class,
+            timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
+        )
+        return client.readRecords(request).records
+            .sumOf { it.energy.inKilocalories.toInt() }
+    }
+
+    suspend fun fetchBasalMetabolicRate(startTime: Instant, endTime: Instant): Int {
+        val client = getClient() ?: return 0
+        if (!hasPermissions()) return 0
+        
+        val request = ReadRecordsRequest(
+            recordType = BasalMetabolicRateRecord::class,
+            timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
+        )
+        // BMR is usually a single record per day or period
+        return client.readRecords(request).records
+            .sumOf { it.basalMetabolicRate.inKilocaloriesPerDay.toInt() } 
+            // Note: BMR is a rate, but for today we assume it's stable or just sum if multiple
     }
 
     suspend fun fetchWorkouts(startTime: Instant, endTime: Instant): List<HCWorkout> {
