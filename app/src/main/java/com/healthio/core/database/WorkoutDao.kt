@@ -28,4 +28,7 @@ interface WorkoutDao {
 
     @Query("SELECT COUNT(*) FROM workout_logs WHERE timestamp >= :start AND timestamp < :end")
     suspend fun getCountBetween(start: Long, end: Long): Int
+
+    @Query("SELECT * FROM workout_logs WHERE timestamp >= :start AND timestamp < :end")
+    suspend fun getWorkoutsListBetween(start: Long, end: Long): List<WorkoutLog>
 }

@@ -26,4 +26,8 @@ class WorkoutRepository(context: Context) {
     suspend fun getImportedExternalIds(): List<String> {
         return dao.getImportedExternalIds()
     }
+
+    suspend fun getWorkoutsBetween(start: Long, end: Long): List<WorkoutLog> {
+        return dao.getWorkoutsListBetween(start, end)
+    }
 }
