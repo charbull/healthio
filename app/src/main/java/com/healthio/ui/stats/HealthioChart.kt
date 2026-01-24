@@ -47,7 +47,11 @@ fun HealthioChart(
 
     val pointCount = series.firstOrNull()?.size ?: 0
     val isDense = pointCount > 20
-    val barThickness = if (isDense) 6.dp else if (series.size > 1) 4.dp else 12.dp
+    val barThickness = if (isDense) {
+        if (series.size > 1) 2.dp else 6.dp
+    } else {
+        if (series.size > 1) 4.dp else 12.dp
+    }
     val barSpacing = if (isDense) 4.dp else if (series.size > 1) 4.dp else 12.dp
 
     val maxValue = series.flatten().maxByOrNull { it.y }?.y ?: 0f

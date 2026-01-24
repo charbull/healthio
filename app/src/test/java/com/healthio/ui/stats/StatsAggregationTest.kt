@@ -92,6 +92,35 @@ class StatsAggregationTest {
         assertEquals(300f, aggregated[2] ?: 0f, 0.01f) // Feb
     }
 
+    @Test
+    fun `Macros - Month View Aggregation Regression Test`() {
+        val today = LocalDate.of(2026, 5, 15)
+        val range = TimeRange.Month
+        
+        // Day 1: 10g P
+        val day1 = MealLog(
+            timestamp = LocalDate.of(2026, 5, 1).atTime(12, 0).atZone(zoneId).toInstant().toEpochMilli(),
+            foodName = "A", calories = 100, protein = 10, carbs = 0, fat = 0
+        )
+        // Day 15: 20g P
+        val day15 = MealLog(
+            timestamp = LocalDate.of(2026, 5, 15).atTime(12, 0).atZone(zoneId).toInstant().toEpochMilli(),
+            foodName = "B", calories = 200, protein = 20, carbs = 0, fat = 0
+        )
+        // Day 31: 30g P
+        val day31 = MealLog(
+            timestamp = LocalDate.of(2026, 5, 31).atTime(12, 0).atZone(zoneId).toInstant().toEpochMilli(),
+            foodName = "C", calories = 300, protein = 30, carbs = 0, fat = 0
+        )
+        
+        val logs = listOf(day1, day15, day31)
+        val (p, c, f) = aggregateMacros(logs, range, today)
+        
+        assertEquals(10f, p[1] ?: 0f, 0.01f)
+        assertEquals(20f, p[15] ?: 0f, 0.01f)
+        assertEquals(30f, p[31] ?: 0f, 0.01f)
+    }
+
     // Logic helpers mimicking ViewModel
     private fun aggregateCalories(logs: List<MealLog>, range: TimeRange, today: LocalDate): Map<Int, Float> {
         val map = mutableMapOf<Int, Float>()
