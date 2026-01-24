@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +27,7 @@ fun StatsScreen(
     val statType by viewModel.statType.collectAsState()
     val chartSeries by viewModel.chartSeries.collectAsState()
     val chartLabels by viewModel.chartLabels.collectAsState()
+    val proteinSeries by viewModel.proteinSeries.collectAsState()
     val summaryTitle by viewModel.summaryTitle.collectAsState()
     val summaryValue by viewModel.summaryValue.collectAsState()
     val workoutDetails by viewModel.workoutDetails.collectAsState()
@@ -45,17 +48,18 @@ fun StatsScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Stat Type Toggle
             TabRow(
-                selectedTabIndex = statType.ordinal,
+                selectedTabIndex = if (statType == StatType.Protein) StatType.Macros.ordinal else statType.ordinal,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.primary
             ) {
-                StatType.values().forEach { type ->
+                StatType.values().filter { it != StatType.Protein }.forEach { type ->
                     Tab(
                         selected = statType == type,
                         onClick = { viewModel.setStatType(type) },
@@ -89,7 +93,8 @@ fun StatsScreen(
                 StatType.Fasting -> "Fasting Time (Hours)"
                 StatType.Workouts -> "Exercises (Sessions)"
                 StatType.Calories -> "Energy Intake (kcal)"
-                StatType.Macros -> "Macronutrients (Grams)"
+                StatType.Macros -> "Macronutrients (Percentage)"
+                StatType.Protein -> "Protein (Grams)"
             }
 
             Text(
@@ -117,9 +122,27 @@ fun StatsScreen(
                         labels = chartLabels,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp)
+                            .height(300.dp),
+                        overrideColors = null
                     )
                 }
+            }
+
+            if (statType == StatType.Macros && proteinSeries.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = "Protein (Grams)",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                HealthioChart(
+                    series = proteinSeries,
+                    labels = chartLabels, // Use the same labels (Mon, Tue...) but maybe without the appended grams
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    overrideColors = listOf(Color(0xFF2196F3))
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))

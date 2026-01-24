@@ -9,6 +9,7 @@ import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.core.chart.column.ColumnChart
 import com.patrykandpatrick.vico.compose.component.lineComponent
 import com.patrykandpatrick.vico.core.axis.AxisPosition
 import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
@@ -20,7 +21,8 @@ import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 fun HealthioChart(
     series: List<List<ChartEntry>>,
     labels: List<String>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    overrideColors: List<Color>? = null
 ) {
     if (series.isEmpty()) return
     
@@ -32,14 +34,16 @@ fun HealthioChart(
 
     // Define colors for series
     val colors = listOf(
-        Color(0xFF4CAF50), // Green (Default/Protein in grouped)
+        Color(0xFF4CAF50), // Green (Default)
         Color(0xFFFFC107), // Yellow (Carbs)
         Color(0xFFE91E63), // Pink (Fat)
-        Color(0xFF2196F3)  // Blue
+        Color(0xFF2196F3)  // Blue (Protein)
     )
 
+    val isMacros = series.size == 3
+    
     // Adjust colors if it's the Macros view (3 series)
-    val columnColors = if (series.size == 3) {
+    val columnColors = overrideColors ?: if (isMacros) {
         listOf(Color(0xFF2196F3), Color(0xFFFFC107), Color(0xFFE91E63)) // P, C, F
     } else {
         listOf(colors[0])
@@ -47,16 +51,33 @@ fun HealthioChart(
 
     val pointCount = series.firstOrNull()?.size ?: 0
     val isDense = pointCount > 20
-    val barThickness = if (isDense) {
-        if (series.size > 1) 2.dp else 6.dp
-    } else {
-        if (series.size > 1) 4.dp else 12.dp
-    }
-    val barSpacing = if (isDense) 4.dp else if (series.size > 1) 4.dp else 12.dp
 
-    val maxValue = series.flatten().maxByOrNull { it.y }?.y ?: 0f
+    val barThickness = when {
+        isDense -> 6.dp
+        else -> 12.dp
+    }
+    
+    val barSpacing = when {
+        isDense -> 4.dp
+        else -> 12.dp
+    }
+
+    val maxValue = if (isMacros) {
+        // For stacked, max is the sum of Ys at the same index
+        val sums = mutableMapOf<Int, Float>()
+        series.forEach { s ->
+            s.forEach { entry ->
+                sums[entry.x.toInt()] = (sums[entry.x.toInt()] ?: 0f) + entry.y
+            }
+        }
+        sums.values.maxOrNull() ?: 0f
+    } else {
+        series.flatten().maxByOrNull { it.y }?.y ?: 0f
+    }
+
     val verticalItemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Vertical.default(
         maxItemCount = when {
+            isMacros -> 6 // 0, 20, 40, 60, 80, 100
             maxValue <= 0f -> 5
             maxValue <= 5f -> (maxValue.toInt() + 1).coerceAtLeast(2)
             else -> 5
@@ -69,14 +90,17 @@ fun HealthioChart(
                 lineComponent(
                     color = color,
                     thickness = barThickness,
-                    shape = Shapes.roundedCornerShape(topLeftPercent = 50, topRightPercent = 50)
+                    shape = if (isMacros) Shapes.rectShape else Shapes.roundedCornerShape(topLeftPercent = 50, topRightPercent = 50)
                 )
             },
-            spacing = barSpacing
+            spacing = barSpacing,
+            mergeMode = if (isMacros) ColumnChart.MergeMode.Stack else ColumnChart.MergeMode.Grouped
         ),
         chartModelProducer = chartEntryModelProducer,
         startAxis = rememberStartAxis(
-            valueFormatter = { value, _ -> String.format("%.0f", value) },
+            valueFormatter = { value, _ -> 
+                if (isMacros) "${value.toInt()}%" else String.format("%.0f", value) 
+            },
             itemPlacer = verticalItemPlacer,
             guideline = null
         ),

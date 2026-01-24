@@ -9,7 +9,12 @@
 ## Key Features
 
 *   **Flux Timer:** A visual, intuitive timer for Intermittent Fasting (16:8 default) with clear "Fasting" and "Eating" states.
-*   **Smart Vision (AI Nutritionist):** Snap a photo of your meal, and Healthio (powered by Gemini AI) analyzes it to estimate calories, macros, and provide a health score with feedback.
+*   **Smart Vision (AI Nutritionist):** Snap a photo of your meal, and Healthio (powered by Gemini AI) analyzes it to estimate calories, macros, and provide a health score with feedback. Simply take a picture, and it is automatically sent to Gemini for instant analysis and logging into your dashboard.
+
+<p align="center">
+  <img src="demo/IMG-20260122-WA0010.jpg" width="300" alt="Food Analysis Example">
+</p>
+
 *   **Energy Dashboard:** Track your daily Calorie Intake vs. Burned Calories in a simple, unified view.
 *   **Smart Reminders:** Intelligent notifications remind you to log meals (Breakfast, Lunch, Dinner) or workouts only if you haven't already.
 *   **Privacy-First Sync:** Securely sync your data to a Google Sheet in your personal Drive. Using the restricted `drive.file` scope, Healthio only interacts with its own files, keeping the rest of your Drive completely private.

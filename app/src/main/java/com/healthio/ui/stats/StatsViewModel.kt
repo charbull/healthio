@@ -37,6 +37,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _chartLabels = MutableStateFlow<List<String>>(emptyList())
     val chartLabels: StateFlow<List<String>> = _chartLabels.asStateFlow()
+
+    private val _proteinSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())
+    val proteinSeries: StateFlow<List<List<ChartEntry>>> = _proteinSeries.asStateFlow()
     
     private val _summaryTitle = MutableStateFlow("")
     val summaryTitle: StateFlow<String> = _summaryTitle.asStateFlow()
@@ -106,6 +109,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val seriesList = mutableListOf<List<ChartEntry>>()
 
         _workoutDetails.value = null
+        _proteinSeries.value = emptyList()
 
         when (type) {
             StatType.Fasting -> {
@@ -194,6 +198,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 val carbs = mutableMapOf<Int, Float>()
                 val fat = mutableMapOf<Int, Float>()
                 var totalCalories = 0
+                var totalProtein = 0
                 
                 allMealLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
@@ -205,18 +210,60 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                             fat[index] = (fat[index] ?: 0f) + log.fat.toFloat()
                         }
                         totalCalories += log.calories
+                        totalProtein += log.protein
                     }
                 }
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, protein[it] ?: 0f) })
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, carbs[it] ?: 0f) })
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, fat[it] ?: 0f) })
+
+                val pEntries = mutableListOf<ChartEntry>()
+                val cEntries = mutableListOf<ChartEntry>()
+                val fEntries = mutableListOf<ChartEntry>()
+                val macroLabels = mutableListOf<String>()
+
+                for (i in 1..bucketCount) {
+                    val p = protein[i] ?: 0f
+                    val c = carbs[i] ?: 0f
+                    val f = fat[i] ?: 0f
+                    val total = p + c + f
+                    
+                    val baseLabel = labels[i-1]
+                    if (range == TimeRange.Week && p > 0) {
+                        macroLabels.add("$baseLabel\n${p.toInt()}g")
+                    } else {
+                        macroLabels.add(baseLabel)
+                    }
+
+                    if (total > 0) {
+                        pEntries.add(MacroEntry(i - 1f, (p / total) * 100f, p.toInt(), "P"))
+                        cEntries.add(MacroEntry(i - 1f, (c / total) * 100f, c.toInt(), "C"))
+                        fEntries.add(MacroEntry(i - 1f, (f / total) * 100f, f.toInt(), "F"))
+                    } else {
+                        pEntries.add(MacroEntry(i - 1f, 0f, 0, "P"))
+                        cEntries.add(MacroEntry(i - 1f, 0f, 0, "C"))
+                        fEntries.add(MacroEntry(i - 1f, 0f, 0, "F"))
+                    }
+                }
+
+                seriesList.add(pEntries)
+                seriesList.add(cEntries)
+                seriesList.add(fEntries)
+                
+                // Populate Protein Series for secondary chart
+                val proteinTotals = (1..bucketCount).map { entryOf(it - 1, protein[it] ?: 0f) }
+                _proteinSeries.value = listOf(proteinTotals)
+
+                _chartLabels.value = macroLabels
                 _summaryTitle.value = "Nutrition"
-                _summaryValue.value = "$totalCalories kcal intake"
+                _summaryValue.value = "$totalProtein g Protein ($totalCalories kcal)"
+            }
+            StatType.Protein -> {
+                 // Removed - merged into Macros
             }
         }
 
         _chartSeries.value = seriesList
-        _chartLabels.value = labels
+        if (type != StatType.Macros) {
+            _chartLabels.value = labels
+        }
     }
 }
 
