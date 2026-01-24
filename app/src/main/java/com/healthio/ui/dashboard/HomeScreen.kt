@@ -303,8 +303,13 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(text = "Current Weight", style = MaterialTheme.typography.labelMedium)
+                        val weightText = if (uiState.currentWeight != null) {
+                            String.format("%.1f lbs", uiState.currentWeight!! * 2.20462f)
+                        } else {
+                            "-- lbs"
+                        }
                         Text(
-                            text = if (uiState.currentWeight != null) "${uiState.currentWeight} kg" else "-- kg",
+                            text = weightText,
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )
                     }
