@@ -34,4 +34,7 @@ interface MealDao {
 
     @Query("SELECT COUNT(*) FROM meal_logs WHERE timestamp >= :start AND timestamp < :end")
     suspend fun getCountBetween(start: Long, end: Long): Int
+
+    @Query("SELECT * FROM meal_logs WHERE timestamp >= :start ORDER BY timestamp DESC")
+    fun getMealsSince(start: Long): Flow<List<MealLog>>
 }

@@ -17,6 +17,10 @@ class WeightRepository(context: Context) {
         return dao.getLatestWeight()
     }
 
+    fun getAllWeights(): Flow<List<WeightLog>> {
+        return dao.getAllWeights()
+    }
+
     suspend fun getImportedExternalIds(): List<String> {
         return dao.getImportedExternalIds()
     }

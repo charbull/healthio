@@ -25,6 +25,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     private val workoutDao = db.workoutDao()
     private val mealDao = db.mealDao()
+    private val weightRepository = com.healthio.core.data.WeightRepository(application)
 
     private val _timeRange = MutableStateFlow(TimeRange.Week)
     val timeRange: StateFlow<TimeRange> = _timeRange.asStateFlow()
@@ -40,6 +41,15 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _proteinSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())
     val proteinSeries: StateFlow<List<List<ChartEntry>>> = _proteinSeries.asStateFlow()
+
+    private val _macroSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())
+    val macroSeries: StateFlow<List<List<ChartEntry>>> = _macroSeries.asStateFlow()
+
+    private val _weightSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())
+    val weightSeries: StateFlow<List<List<ChartEntry>>> = _weightSeries.asStateFlow()
+    
+    private val _recentMeals = MutableStateFlow<List<MealLog>>(emptyList())
+    val recentMeals: StateFlow<List<MealLog>> = _recentMeals.asStateFlow()
     
     private val _summaryTitle = MutableStateFlow("")
     val summaryTitle: StateFlow<String> = _summaryTitle.asStateFlow()
@@ -62,6 +72,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private var allFastingLogs: List<FastingLog> = emptyList()
     private var allWorkoutLogs: List<WorkoutLog> = emptyList()
     private var allMealLogs: List<MealLog> = emptyList()
+    private var allWeightLogs: List<com.healthio.core.database.WeightLog> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -80,6 +91,21 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             mealDao.getAllMeals().collect { meals ->
                 allMealLogs = meals
                 updateChartData()
+            }
+        }
+        viewModelScope.launch {
+            weightRepository.getAllWeights().collect { weights ->
+                allWeightLogs = weights
+                updateChartData()
+            }
+        }
+        
+        // Fetch recent meals (last 30 days)
+        val thirtyDaysAgo = LocalDate.now(ZoneId.systemDefault()).minusDays(30)
+            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        viewModelScope.launch {
+            mealDao.getMealsSince(thirtyDaysAgo).collect { meals ->
+                _recentMeals.value = meals
             }
         }
     }
@@ -110,6 +136,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
         _workoutDetails.value = null
         _proteinSeries.value = emptyList()
+        _macroSeries.value = emptyList()
+        _weightSeries.value = emptyList()
 
         when (type) {
             StatType.Fasting -> {
@@ -133,138 +161,152 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 _summaryValue.value = "Active consistency"
             }
             StatType.Workouts -> {
-                val dailyCounts = mutableMapOf<Int, Float>()
+                val dailyIntensity = mutableMapOf<Int, Float>()
                 // Filter for summary stats
                 val filteredWorkouts = allWorkoutLogs.filter { 
                     StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), range, today).second 
                 }
                 
+                // Calculate chart data: Average kcal/min per bucket
+                val bucketCalories = mutableMapOf<Int, Float>()
+                val bucketMinutes = mutableMapOf<Int, Float>()
+
                 allWorkoutLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include && index in 1..bucketCount) {
-                        // Only count actual workouts for the chart frequency, ignore daily adjustments
-                        if (log.type != "Daily Active Burn") {
-                            dailyCounts[index] = (dailyCounts[index] ?: 0f) + 1f
+                        // Only count actual workouts
+                        if (log.type != "Daily Active Burn" && log.type != "Daily BMR & Activity") {
+                            bucketCalories[index] = (bucketCalories[index] ?: 0f) + log.calories.toFloat()
+                            bucketMinutes[index] = (bucketMinutes[index] ?: 0f) + log.durationMinutes.toFloat()
                         }
                     }
                 }
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyCounts[it] ?: 0f) })
                 
-                // Recalculate filtered lists for frequency stats
-                val weekSessions = allWorkoutLogs.count { 
-                    it.type != "Daily Active Burn" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Week, today).second 
-                }
-                val monthSessions = allWorkoutLogs.count { 
-                    it.type != "Daily Active Burn" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Month, today).second 
-                }
-                val yearSessions = allWorkoutLogs.count { 
-                    it.type != "Daily Active Burn" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Year, today).second 
+                for (i in 1..bucketCount) {
+                    val cals = bucketCalories[i] ?: 0f
+                    val mins = bucketMinutes[i] ?: 0f
+                    if (mins > 0) {
+                        dailyIntensity[i] = cals / mins
+                    }
                 }
 
-                val realSessions = filteredWorkouts.filter { it.type != "Daily Active Burn" }
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyIntensity[it] ?: 0f) })
+                
+                // Recalculate filtered lists for frequency stats (keep logic for summary card)
+                val weekSessions = allWorkoutLogs.count { 
+                    it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Week, today).second 
+                }
+                val monthSessions = allWorkoutLogs.count { 
+                    it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Month, today).second 
+                }
+                val yearSessions = allWorkoutLogs.count { 
+                    it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Year, today).second 
+                }
+
+                val realSessions = filteredWorkouts.filter { it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" }
+                val totalMins = realSessions.sumOf { it.durationMinutes }
+                val avgIntensity = if (totalMins > 0) realSessions.sumOf { it.calories } / totalMins.toFloat() else 0f
 
                 _workoutDetails.value = WorkoutSummary(
                     sessions = realSessions.size,
                     calories = filteredWorkouts.sumOf { it.calories }, // Sum ALL calories including adjustments
-                    minutes = realSessions.sumOf { it.durationMinutes },
+                    minutes = totalMins,
                     sessionsWeek = weekSessions,
                     sessionsMonth = monthSessions,
                     sessionsYear = yearSessions
                 )
-                _summaryTitle.value = "Workout Activity"
-                _summaryValue.value = "${realSessions.size} sessions"
+                _summaryTitle.value = "Workout Intensity"
+                _summaryValue.value = String.format("%.1f kcal/min", avgIntensity)
             }
-            StatType.Calories -> {
-                val dailyTotals = mutableMapOf<Int, Float>()
-                var totalCalories = 0
+            StatType.Intake -> {
+                val positiveSeries = mutableMapOf<Int, Float>()
+                val negativeSeries = mutableMapOf<Int, Float>()
+                val proteinMap = mutableMapOf<Int, Float>()
+                val carbsMap = mutableMapOf<Int, Float>()
+                val fatMap = mutableMapOf<Int, Float>()
                 
+                var totalIntake = 0
+                var totalBurned = 0
+                
+                // 1. Intake and Macros
+                val intakeMap = mutableMapOf<Int, Int>()
                 allMealLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = StatsUtils.getBucketIndex(date, range, today)
-                    if (include) {
-                        if (index in 1..bucketCount) {
-                            dailyTotals[index] = (dailyTotals[index] ?: 0f) + log.calories.toFloat()
-                        }
-                        totalCalories += log.calories
+                    if (include && index in 1..bucketCount) {
+                        intakeMap[index] = (intakeMap[index] ?: 0) + log.calories
+                        proteinMap[index] = (proteinMap[index] ?: 0f) + log.protein.toFloat()
+                        carbsMap[index] = (carbsMap[index] ?: 0f) + log.carbs.toFloat()
+                        fatMap[index] = (fatMap[index] ?: 0f) + log.fat.toFloat()
+                        totalIntake += log.calories
                     }
                 }
-                seriesList.add((1..bucketCount).map { entryOf(it - 1, dailyTotals[it] ?: 0f) })
-                _summaryTitle.value = "Energy Intake"
-                _summaryValue.value = "$totalCalories kcal"
-            }
-            StatType.Macros -> {
-                val protein = mutableMapOf<Int, Float>()
-                val carbs = mutableMapOf<Int, Float>()
-                val fat = mutableMapOf<Int, Float>()
-                var totalCalories = 0
-                var totalProtein = 0
                 
-                allMealLogs.forEach { log ->
+                // 2. Burned
+                val burnedMap = mutableMapOf<Int, Int>()
+                allWorkoutLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = StatsUtils.getBucketIndex(date, range, today)
-                    if (include) {
-                        if (index in 1..bucketCount) {
-                            protein[index] = (protein[index] ?: 0f) + log.protein.toFloat()
-                            carbs[index] = (carbs[index] ?: 0f) + log.carbs.toFloat()
-                            fat[index] = (fat[index] ?: 0f) + log.fat.toFloat()
-                        }
-                        totalCalories += log.calories
-                        totalProtein += log.protein
+                    if (include && index in 1..bucketCount) {
+                        burnedMap[index] = (burnedMap[index] ?: 0) + log.calories
+                        totalBurned += log.calories
                     }
                 }
-
+                
+                // 3. Process Series
                 val pEntries = mutableListOf<ChartEntry>()
                 val cEntries = mutableListOf<ChartEntry>()
                 val fEntries = mutableListOf<ChartEntry>()
-                val macroLabels = mutableListOf<String>()
 
                 for (i in 1..bucketCount) {
-                    val p = protein[i] ?: 0f
-                    val c = carbs[i] ?: 0f
-                    val f = fat[i] ?: 0f
-                    val total = p + c + f
+                    val intake = intakeMap[i] ?: 0
+                    val burned = burnedMap[i] ?: 0
+                    val net = (intake - burned).toFloat()
                     
-                    val baseLabel = labels[i-1]
-                    if (range == TimeRange.Week && p > 0) {
-                        macroLabels.add("$baseLabel\n${p.toInt()}g")
+                    if (net > 0) {
+                        positiveSeries[i] = net
+                        negativeSeries[i] = 0f
                     } else {
-                        macroLabels.add(baseLabel)
+                        positiveSeries[i] = 0f
+                        negativeSeries[i] = net
                     }
 
-                    if (total > 0) {
-                        pEntries.add(MacroEntry(i - 1f, (p / total) * 100f, p.toInt(), "P"))
-                        cEntries.add(MacroEntry(i - 1f, (c / total) * 100f, c.toInt(), "C"))
-                        fEntries.add(MacroEntry(i - 1f, (f / total) * 100f, f.toInt(), "F"))
+                    // Macro Percentages
+                    val p = proteinMap[i] ?: 0f
+                    val c = carbsMap[i] ?: 0f
+                    val f = fatMap[i] ?: 0f
+                    val totalMacros = p + c + f
+                    if (totalMacros > 0) {
+                        pEntries.add(MacroEntry(i - 1f, (p / totalMacros) * 100f, p.toInt(), "P"))
+                        cEntries.add(MacroEntry(i - 1f, (c / totalMacros) * 100f, c.toInt(), "C"))
+                        fEntries.add(MacroEntry(i - 1f, (f / totalMacros) * 100f, f.toInt(), "F"))
                     } else {
                         pEntries.add(MacroEntry(i - 1f, 0f, 0, "P"))
                         cEntries.add(MacroEntry(i - 1f, 0f, 0, "C"))
                         fEntries.add(MacroEntry(i - 1f, 0f, 0, "F"))
                     }
                 }
-
-                seriesList.add(pEntries)
-                seriesList.add(cEntries)
-                seriesList.add(fEntries)
                 
-                // Populate Protein Series for secondary chart
-                val proteinTotals = (1..bucketCount).map { entryOf(it - 1, protein[it] ?: 0f) }
-                _proteinSeries.value = listOf(proteinTotals)
-
-                _chartLabels.value = macroLabels
-                _summaryTitle.value = "Nutrition"
-                _summaryValue.value = "$totalProtein g Protein ($totalCalories kcal)"
-            }
-            StatType.Protein -> {
-                 // Removed - merged into Macros
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, positiveSeries[it] ?: 0f) })
+                seriesList.add((1..bucketCount).map { entryOf(it - 1, negativeSeries[it] ?: 0f) })
+                
+                // 4. Weight Series
+                val weightEntries = WeightSeriesCalculator.calculate(
+                    allWeightLogs = allWeightLogs,
+                    range = range,
+                    today = today,
+                    zoneId = zoneId
+                )
+                _weightSeries.value = listOf(weightEntries)
+                
+                _macroSeries.value = listOf(pEntries, cEntries, fEntries)
+                _summaryTitle.value = ""
+                _summaryValue.value = ""
             }
         }
 
         _chartSeries.value = seriesList
-        if (type != StatType.Macros) {
-            _chartLabels.value = labels
-        }
+        _chartLabels.value = labels
     }
 }
-
-    

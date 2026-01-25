@@ -9,10 +9,12 @@ import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.core.chart.column.ColumnChart
 import com.patrykandpatrick.vico.compose.component.lineComponent
 import com.patrykandpatrick.vico.core.axis.AxisPosition
 import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
+import com.patrykandpatrick.vico.core.chart.line.LineChart
 import com.patrykandpatrick.vico.core.component.shape.Shapes
 import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
@@ -22,7 +24,8 @@ fun HealthioChart(
     series: List<List<ChartEntry>>,
     labels: List<String>,
     modifier: Modifier = Modifier,
-    overrideColors: List<Color>? = null
+    overrideColors: List<Color>? = null,
+    isLineChart: Boolean = false
 ) {
     if (series.isEmpty()) return
     
@@ -41,12 +44,13 @@ fun HealthioChart(
     )
 
     val isMacros = series.size == 3
+    val isIntake = series.size == 2
     
-    // Adjust colors if it's the Macros view (3 series)
-    val columnColors = overrideColors ?: if (isMacros) {
-        listOf(Color(0xFF2196F3), Color(0xFFFFC107), Color(0xFFE91E63)) // P, C, F
-    } else {
-        listOf(colors[0])
+    // Adjust colors based on series count
+    val columnColors = overrideColors ?: when (series.size) {
+        3 -> listOf(Color(0xFF2196F3), Color(0xFFFFC107), Color(0xFFE91E63)) // Macros: P, C, F
+        2 -> listOf(Color(0xFFF44336), Color(0xFF4CAF50)) // Intake: Positive (Red), Negative (Green)
+        else -> listOf(colors[0])
     }
 
     val pointCount = series.firstOrNull()?.size ?: 0
@@ -84,18 +88,31 @@ fun HealthioChart(
         }
     )
 
-    Chart(
-        chart = columnChart(
+    val chart = if (isLineChart) {
+        lineChart(
+            lines = columnColors.map { color ->
+                com.patrykandpatrick.vico.core.chart.line.LineChart.LineSpec(
+                    lineColor = color.hashCode(),
+                    lineThicknessDp = 3f
+                )
+            }
+        )
+    } else {
+        columnChart(
             columns = columnColors.map { color ->
                 lineComponent(
                     color = color,
                     thickness = barThickness,
-                    shape = if (isMacros) Shapes.rectShape else Shapes.roundedCornerShape(topLeftPercent = 50, topRightPercent = 50)
+                    shape = if (isMacros || isIntake) Shapes.rectShape else Shapes.roundedCornerShape(topLeftPercent = 50, topRightPercent = 50)
                 )
             },
             spacing = barSpacing,
-            mergeMode = if (isMacros) ColumnChart.MergeMode.Stack else ColumnChart.MergeMode.Grouped
-        ),
+            mergeMode = if (isMacros || isIntake) ColumnChart.MergeMode.Stack else ColumnChart.MergeMode.Grouped
+        )
+    }
+
+    Chart(
+        chart = chart,
         chartModelProducer = chartEntryModelProducer,
         startAxis = rememberStartAxis(
             valueFormatter = { value, _ -> 

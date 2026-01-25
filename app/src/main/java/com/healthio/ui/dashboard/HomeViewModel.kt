@@ -241,6 +241,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun logManualWeight(weightLbs: Float) {
+        val weightKg = weightLbs / 2.20462f
+        viewModelScope.launch {
+            weightRepository.logWeight(
+                com.healthio.core.database.WeightLog(
+                    timestamp = System.currentTimeMillis(),
+                    valueKg = weightKg,
+                    source = "manual"
+                )
+            )
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()

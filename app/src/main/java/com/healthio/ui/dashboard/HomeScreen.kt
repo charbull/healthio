@@ -32,6 +32,7 @@ import com.healthio.ui.components.FastCompletedDialog
 import com.healthio.ui.components.FluxTimer
 import com.healthio.ui.components.ManualEntryTypeDialog
 import com.healthio.ui.components.ManualFoodLogDialog
+import com.healthio.ui.components.AddWeightDialog
 import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
@@ -103,6 +104,7 @@ fun HomeScreen(
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var showAddMealDialog by remember { mutableStateOf(false) }
     var showManualMealDialog by remember { mutableStateOf(false) }
+    var showWeightDialog by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
     // Sync State Feedback
@@ -220,6 +222,20 @@ fun HomeScreen(
         )
     }
 
+    if (showWeightDialog) {
+        AddWeightDialog(
+            onDismiss = { showWeightDialog = false },
+            onSave = { weight ->
+                viewModel.logManualWeight(weight)
+                showWeightDialog = false
+                Toast.makeText(context, "Weight Updated", Toast.LENGTH_SHORT).show()
+            },
+            onSync = {
+                workoutViewModel.syncFromHealthConnect()
+            }
+        )
+    }
+
     Scaffold(
         // FAB removed as requested
     ) { paddingValues ->
@@ -325,12 +341,17 @@ fun HomeScreen(
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )
                     }
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Weight",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showWeightDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Weight", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Weight",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
             }
             

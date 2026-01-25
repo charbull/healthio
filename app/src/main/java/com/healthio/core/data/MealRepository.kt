@@ -46,4 +46,8 @@ class MealRepository(context: Context) {
         val endOfDay = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
         return dao.getFatBetween(startOfDay, endOfDay)
     }
+
+    fun getMealsSince(start: Long): Flow<List<MealLog>> {
+        return dao.getMealsSince(start)
+    }
 }
