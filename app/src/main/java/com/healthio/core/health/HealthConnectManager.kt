@@ -89,8 +89,8 @@ class HealthConnectManager(private val context: Context) {
         )
         // BMR is usually a single record per day or period
         return client.readRecords(request).records
-            .sumOf { it.basalMetabolicRate.inKilocaloriesPerDay.toInt() } 
-            // Note: BMR is a rate, but for today we assume it's stable or just sum if multiple
+            .maxOfOrNull { it.basalMetabolicRate.inKilocaloriesPerDay.toInt() } ?: 0
+            // Note: BMR is a rate, taking max avoids summing duplicates
     }
 
     suspend fun fetchWorkouts(startTime: Instant, endTime: Instant): List<HCWorkout> {

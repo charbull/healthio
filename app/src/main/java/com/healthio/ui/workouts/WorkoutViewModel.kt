@@ -9,6 +9,9 @@ import com.healthio.core.data.WeightRepository
 import com.healthio.core.data.WorkoutRepository
 import com.healthio.core.health.HealthConnectManager
 import androidx.health.connect.client.HealthConnectClient
+import androidx.datastore.preferences.core.edit
+import com.healthio.core.data.dataStore
+import com.healthio.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -73,6 +76,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 val today = LocalDate.now(zoneId)
                 val now = Instant.now()
                 
+                // 0. Sync BMR from Health Connect
+                val todayStart = today.atStartOfDay(zoneId).toInstant()
+                val bmr = healthConnectManager.fetchBasalMetabolicRate(todayStart, now)
+                if (bmr > 0) {
+                    getApplication<Application>().dataStore.edit { preferences ->
+                        preferences[SettingsViewModel.BASE_DAILY_BURN] = bmr
+                    }
+                }
+                
                 var totalNewWorkouts = 0
                 var totalDaysUpdated = 0
 
@@ -111,30 +123,49 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     totalNewWorkouts += dayNewCount
 
                     // 2. Calculate Active Burn Adjustment for this day
-                    // Target: Total Daily Energy Expenditure (TDEE) -> Active + BMR
-                    val dayTotalBurned = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
+                    var dayTotalActive = healthConnectManager.fetchActiveCalories(dayStart, actualEnd)
+                    
+                    // Fallback logic if Active is missing but Total is present
+                    if (dayTotalActive == 0) {
+                        val total = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
+                        if (total > 0) {
+                            val bmrRate = healthConnectManager.fetchBasalMetabolicRate(dayStart, actualEnd)
+                            if (bmrRate > 0) {
+                                // Calculate BMR energy for the elapsed time in this window
+                                val seconds = java.time.Duration.between(dayStart, actualEnd).seconds
+                                val dayFraction = seconds / 86400.0
+                                val bmrEnergy = (bmrRate * dayFraction).toInt()
+                                
+                                dayTotalActive = (total - bmrEnergy).coerceAtLeast(0)
+                            } else {
+                                // Rough estimate if BMR record missing but Total exists
+                                dayTotalActive = (total * 0.25).toInt() 
+                            }
+                        }
+                    }
 
-                    if (dayTotalBurned > 0) {
+                    // Upsert the adjustment (Delete old, Insert new)
+                    val adjId = "daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
+                    
+                    // Always clean up potential duplicates or old values
+                    repository.deleteWorkoutByExternalId(adjId)
+
+                    if (dayTotalActive > 0) {
                         // Refresh DB list to include any just-inserted workouts
                         val updatedDbWorkouts = repository.getWorkoutsBetween(dayStart.toEpochMilli(), actualEnd.toEpochMilli())
                         
+                        // Sum calories from explicit workouts (Manual + Imported)
                         val knownSessionCalories = updatedDbWorkouts
-                            .filter { it.type != "Daily BMR & Activity" && it.type != "Daily Active Burn" }
+                            .filter { it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" }
                             .sumOf { it.calories }
                         
-                        val adjustment = (dayTotalBurned - knownSessionCalories).coerceAtLeast(0)
-                        
-                        // Upsert the adjustment (Delete old, Insert new)
-                        val adjId = "daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
-                        
-                        // Always clean up potential duplicates or old values
-                        repository.deleteWorkoutByExternalId(adjId)
+                        val adjustment = (dayTotalActive - knownSessionCalories).coerceAtLeast(0)
 
                         if (adjustment > 0) {
                             repository.logWorkout(
                                 WorkoutLog(
                                     timestamp = dayStart.toEpochMilli() + 60000, // 1 min past midnight
-                                    type = "Daily BMR & Activity",
+                                    type = "Daily Active Burn",
                                     calories = adjustment,
                                     durationMinutes = 0,
                                     source = "Health Connect",

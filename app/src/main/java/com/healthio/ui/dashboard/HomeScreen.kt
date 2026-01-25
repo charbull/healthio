@@ -91,6 +91,11 @@ fun HomeScreen(
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
+        // Auto-sync if permissions granted
+        val hcManager = HealthConnectManager(context)
+        if (hcManager.hasPermissions()) {
+            workoutViewModel.syncFromHealthConnect()
+        }
     }
 
     // State for Dialogs
