@@ -30,4 +30,8 @@ class WorkoutRepository(context: Context) {
     suspend fun getWorkoutsBetween(start: Long, end: Long): List<WorkoutLog> {
         return dao.getWorkoutsListBetween(start, end)
     }
+
+    suspend fun deleteWorkoutByExternalId(externalId: String) {
+        dao.deleteWorkoutByExternalId(externalId)
+    }
 }

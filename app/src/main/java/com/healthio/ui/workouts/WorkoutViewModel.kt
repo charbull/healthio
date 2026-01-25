@@ -111,36 +111,30 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     totalNewWorkouts += dayNewCount
 
                     // 2. Calculate Active Burn Adjustment for this day
-                    var dayTotalActive = healthConnectManager.fetchActiveCalories(dayStart, actualEnd)
-                    
-                    // Fallback logic
-                    if (dayTotalActive == 0) {
-                        val total = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
-                        if (total > 0) dayTotalActive = total / 4
-                    }
+                    // Target: Total Daily Energy Expenditure (TDEE) -> Active + BMR
+                    val dayTotalBurned = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
 
-                    if (dayTotalActive > 0) {
+                    if (dayTotalBurned > 0) {
                         // Refresh DB list to include any just-inserted workouts
-                        // Optimization: just assume dbWorkouts + inserted ones
-                        // But safer to re-query or calc manually. 
-                        // Let's re-query to be safe and consistent
                         val updatedDbWorkouts = repository.getWorkoutsBetween(dayStart.toEpochMilli(), actualEnd.toEpochMilli())
                         
                         val knownSessionCalories = updatedDbWorkouts
-                            .filter { it.type != "Daily Active Burn" }
+                            .filter { it.type != "Daily BMR & Activity" && it.type != "Daily Active Burn" }
                             .sumOf { it.calories }
                         
-                        val adjustment = (dayTotalActive - knownSessionCalories).coerceAtLeast(0)
+                        val adjustment = (dayTotalBurned - knownSessionCalories).coerceAtLeast(0)
                         
-                        // Always upsert the adjustment if valid, or if we need to 'zero out' an old incorrect one?
-                        // If adjustment is 0, we might want to overwrite an old value if it existed? 
-                        // For now, only insert if > 0.
+                        // Upsert the adjustment (Delete old, Insert new)
+                        val adjId = "daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
+                        
+                        // Always clean up potential duplicates or old values
+                        repository.deleteWorkoutByExternalId(adjId)
+
                         if (adjustment > 0) {
-                            val adjId = "daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
                             repository.logWorkout(
                                 WorkoutLog(
                                     timestamp = dayStart.toEpochMilli() + 60000, // 1 min past midnight
-                                    type = "Daily Active Burn",
+                                    type = "Daily BMR & Activity",
                                     calories = adjustment,
                                     durationMinutes = 0,
                                     source = "Health Connect",

@@ -31,4 +31,7 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout_logs WHERE timestamp >= :start AND timestamp < :end")
     suspend fun getWorkoutsListBetween(start: Long, end: Long): List<WorkoutLog>
+
+    @Query("DELETE FROM workout_logs WHERE externalId = :externalId")
+    suspend fun deleteWorkoutByExternalId(externalId: String)
 }
