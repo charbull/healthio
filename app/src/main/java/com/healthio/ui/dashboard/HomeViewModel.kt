@@ -39,6 +39,9 @@ data class HomeUiState(
     val feedbackQuote: String = "",
     val todayCalories: Int = 0,
     val todayBurnedCalories: Int = 0,
+    val todayProtein: Int = 0,
+    val todayCarbs: Int = 0,
+    val todayFat: Int = 0,
     val baseDailyBurn: Int = 1800,
     val currentWeight: Float? = null
 )
@@ -65,11 +68,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 repository.startTime,
                 mealRepository.getTodayCalories(),
                 workoutRepository.getTodayBurnedCalories(),
-                baseBurnFlow
-            ) { isFasting, startTime, calories, burned, baseBurn ->
-                Pentuple(isFasting, startTime, calories, burned, baseBurn)
-            }.combine(weightRepository.getLatestWeight().onStart { emit(null) }) { pentuple, weight ->
-                updateState(pentuple.first, pentuple.second, pentuple.third, pentuple.fourth, pentuple.fifth, weight?.valueKg)
+                baseBurnFlow,
+                mealRepository.getTodayProtein(),
+                mealRepository.getTodayCarbs(),
+                mealRepository.getTodayFat()
+            ) { args ->
+                val isFasting = args[0] as Boolean
+                val startTime = args[1] as Long?
+                val calories = args[2] as Int?
+                val burned = args[3] as Int?
+                val baseBurn = args[4] as Int
+                val protein = args[5] as Int?
+                val carbs = args[6] as Int?
+                val fat = args[7] as Int?
+                
+                HomeData(isFasting, startTime, calories, burned, baseBurn, protein, carbs, fat)
+            }.combine(weightRepository.getLatestWeight().onStart { emit(null) }) { data, weight ->
+                updateState(data, weight?.valueKg)
             }.collect { }
         }
         startTimer()
@@ -77,27 +92,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var lastActiveBurned: Int = 0
 
-    private fun updateState(isFasting: Boolean, startTime: Long?, calories: Int?, burned: Int?, baseBurn: Int, weight: Float?) {
-        lastActiveBurned = burned ?: 0
+    private fun updateState(data: HomeData, weight: Float?) {
+        lastActiveBurned = data.burned ?: 0
         val calendar = java.util.Calendar.getInstance()
         val hoursPassed = calendar.get(java.util.Calendar.HOUR_OF_DAY)
         val minutesPassed = calendar.get(java.util.Calendar.MINUTE)
         val dayProgress = (hoursPassed * 60 + minutesPassed) / 1440f
         
-        val dynamicBaseBurn = (baseBurn * dayProgress).toInt()
+        val dynamicBaseBurn = (data.baseBurn * dayProgress).toInt()
 
         _uiState.value = _uiState.value.copy(
-            timerState = if (isFasting) TimerState.FASTING else TimerState.EATING,
-            startTime = startTime,
-            todayCalories = calories ?: 0,
+            timerState = if (data.isFasting) TimerState.FASTING else TimerState.EATING,
+            startTime = data.startTime,
+            todayCalories = data.calories ?: 0,
             todayBurnedCalories = lastActiveBurned + dynamicBaseBurn,
-            baseDailyBurn = baseBurn,
+            todayProtein = data.protein ?: 0,
+            todayCarbs = data.carbs ?: 0,
+            todayFat = data.fat ?: 0,
+            baseDailyBurn = data.baseBurn,
             currentWeight = weight
         )
         calculateProgress()
     }
 
-    data class Pentuple<A, B, C, D, E>(val first: A, val second: B, val third: C, val fourth: D, val fifth: E)
+    data class HomeData(
+        val isFasting: Boolean, 
+        val startTime: Long?, 
+        val calories: Int?, 
+        val burned: Int?, 
+        val baseBurn: Int,
+        val protein: Int?,
+        val carbs: Int?,
+        val fat: Int?
+    )
 
     private fun startTimer() {
         timerJob?.cancel()

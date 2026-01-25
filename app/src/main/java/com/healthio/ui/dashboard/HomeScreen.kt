@@ -282,6 +282,13 @@ fun HomeScreen(
             Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Macro Widget
+            MacroSection(uiState = uiState)
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Section 2: Energy Dashboard
             EnergySection(
                 uiState = uiState,
@@ -368,6 +375,84 @@ fun FastingSection(
                 Text(text = "Manual Entry / Log Past Fast...", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)))
             }
         }
+    }
+}
+
+@Composable
+fun MacroSection(uiState: HomeUiState) {
+    Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Today's Macros",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Protein
+                val proteinGoal = (1.5 * (uiState.currentWeight ?: 70f)).toInt()
+                MacroProgressBar(
+                    label = "Protein",
+                    value = uiState.todayProtein,
+                    goal = proteinGoal,
+                    color = Color(0xFF2196F3),
+                    unit = "g"
+                )
+
+                // Carbs
+                MacroProgressBar(
+                    label = "Carbs",
+                    value = uiState.todayCarbs,
+                    goal = 30,
+                    color = Color(0xFFFFC107),
+                    unit = "g"
+                )
+
+                // Fat
+                MacroProgressBar(
+                    label = "Fat",
+                    value = uiState.todayFat,
+                    goal = 130,
+                    color = Color(0xFFE91E63),
+                    unit = "g"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MacroProgressBar(
+    label: String,
+    value: Int,
+    goal: Int,
+    color: Color,
+    unit: String
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = "$value / $goal $unit",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = (value.toFloat() / goal).coerceIn(0f, 1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp),
+            color = color,
+            trackColor = color.copy(alpha = 0.2f),
+            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+        )
     }
 }
 
