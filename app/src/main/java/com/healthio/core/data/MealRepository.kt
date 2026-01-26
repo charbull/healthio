@@ -15,6 +15,14 @@ class MealRepository(context: Context) {
         dao.insertMeal(meal)
     }
 
+    suspend fun updateMeal(meal: MealLog) {
+        dao.updateMeal(meal)
+    }
+
+    suspend fun deleteMeal(meal: MealLog) {
+        dao.deleteMeal(meal)
+    }
+
     fun getTodayCalories(): Flow<Int?> {
         val zoneId = ZoneId.systemDefault()
         val today = LocalDate.now(zoneId)

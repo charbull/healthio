@@ -120,6 +120,18 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         updateChartData()
     }
 
+    fun updateMeal(meal: MealLog) {
+        viewModelScope.launch {
+            mealDao.updateMeal(meal)
+        }
+    }
+
+    fun deleteMeal(meal: MealLog) {
+        viewModelScope.launch {
+            mealDao.deleteMeal(meal)
+        }
+    }
+
     private fun updateChartData() {
         val range = _timeRange.value
         val type = _statType.value

@@ -1,14 +1,22 @@
 package com.healthio.core.database
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MealDao {
     @Insert
     suspend fun insertMeal(meal: MealLog)
+
+    @Update
+    suspend fun updateMeal(meal: MealLog)
+
+    @Delete
+    suspend fun deleteMeal(meal: MealLog)
 
     @Query("SELECT * FROM meal_logs ORDER BY timestamp DESC")
     fun getAllMeals(): Flow<List<MealLog>>

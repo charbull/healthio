@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,7 +12,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.healthio.ui.components.EditMealDialog
 
 import com.healthio.core.database.MealLog
 import java.text.SimpleDateFormat
@@ -38,6 +37,23 @@ fun StatsScreen(
     val summaryTitle by viewModel.summaryTitle.collectAsState()
     val summaryValue by viewModel.summaryValue.collectAsState()
     val workoutDetails by viewModel.workoutDetails.collectAsState()
+    
+    var selectedMealToEdit by remember { mutableStateOf<MealLog?>(null) }
+
+    if (selectedMealToEdit != null) {
+        EditMealDialog(
+            meal = selectedMealToEdit!!,
+            onDismiss = { selectedMealToEdit = null },
+            onUpdate = { updatedMeal ->
+                viewModel.updateMeal(updatedMeal)
+                selectedMealToEdit = null
+            },
+            onDelete = { mealToDelete ->
+                viewModel.deleteMeal(mealToDelete)
+                selectedMealToEdit = null
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -212,7 +228,7 @@ fun StatsScreen(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)
                 )
-                MealHistoryList(recentMeals)
+                MealHistoryList(recentMeals, onMealClick = { selectedMealToEdit = it })
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -221,18 +237,18 @@ fun StatsScreen(
 }
 
 @Composable
-fun MealHistoryList(meals: List<MealLog>) {
+fun MealHistoryList(meals: List<MealLog>, onMealClick: (MealLog) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         meals.forEach { meal ->
-            MealHistoryItem(meal)
+            MealHistoryItem(meal, onClick = { onMealClick(meal) })
         }
     }
 }
 
 @Composable
-fun MealHistoryItem(meal: MealLog) {
+fun MealHistoryItem(meal: MealLog, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
