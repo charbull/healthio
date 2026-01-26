@@ -7,6 +7,7 @@ import com.healthio.core.data.dataStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val SPREADSHEET_ID = stringPreferencesKey("spreadsheet_id")
         val GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
         val BASE_DAILY_BURN = intPreferencesKey("base_daily_burn")
+        val DAILY_CARBS_GOAL = intPreferencesKey("daily_carbs_goal")
+        val DAILY_FAT_GOAL = intPreferencesKey("daily_fat_goal")
+        val PROTEIN_CALC_METHOD = stringPreferencesKey("protein_calc_method")
+        val PROTEIN_FIXED_GOAL = intPreferencesKey("protein_fixed_goal")
+        val PROTEIN_MULTIPLIER = floatPreferencesKey("protein_multiplier")
     }
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -37,19 +43,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     init {
         viewModelScope.launch {
             context.dataStore.data.map { preferences ->
-                val email = preferences[GOOGLE_ACCOUNT_EMAIL]
-                val apiKey = preferences[GEMINI_API_KEY]
-                val baseBurn = preferences[BASE_DAILY_BURN] ?: 1800 // Default 1800
-                
-                Triple(email, apiKey, baseBurn)
-            }.collect { (email, apiKey, baseBurn) ->
-                _uiState.value = _uiState.value.copy(
-                    connectedEmail = email,
-                    isConnected = !email.isNullOrEmpty(),
-                    geminiApiKey = apiKey,
-                    baseDailyBurn = baseBurn
+                SettingsUiState(
+                    connectedEmail = preferences[GOOGLE_ACCOUNT_EMAIL],
+                    isConnected = !preferences[GOOGLE_ACCOUNT_EMAIL].isNullOrEmpty(),
+                    geminiApiKey = preferences[GEMINI_API_KEY],
+                    baseDailyBurn = preferences[BASE_DAILY_BURN] ?: 1800,
+                    carbsGoal = preferences[DAILY_CARBS_GOAL] ?: 30,
+                    fatGoal = preferences[DAILY_FAT_GOAL] ?: 130,
+                    proteinMethod = preferences[PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
+                    proteinFixedGoal = preferences[PROTEIN_FIXED_GOAL] ?: 150,
+                    proteinMultiplier = preferences[PROTEIN_MULTIPLIER] ?: 1.5f
                 )
-                if (!email.isNullOrEmpty()) {
+            }.collect { state ->
+                _uiState.value = state
+                if (state.isConnected) {
                     scheduleBackup()
                 }
             }
@@ -74,6 +81,26 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 preferences[GOOGLE_ACCOUNT_EMAIL] = email
             }
         }
+    }
+
+    fun setCarbsGoal(goal: Int) {
+        viewModelScope.launch { context.dataStore.edit { it[DAILY_CARBS_GOAL] = goal } }
+    }
+
+    fun setFatGoal(goal: Int) {
+        viewModelScope.launch { context.dataStore.edit { it[DAILY_FAT_GOAL] = goal } }
+    }
+
+    fun setProteinMethod(method: String) {
+        viewModelScope.launch { context.dataStore.edit { it[PROTEIN_CALC_METHOD] = method } }
+    }
+
+    fun setProteinFixedGoal(goal: Int) {
+        viewModelScope.launch { context.dataStore.edit { it[PROTEIN_FIXED_GOAL] = goal } }
+    }
+
+    fun setProteinMultiplier(mult: Float) {
+        viewModelScope.launch { context.dataStore.edit { it[PROTEIN_MULTIPLIER] = mult } }
     }
 
     fun disconnectAccount() {
@@ -108,5 +135,10 @@ data class SettingsUiState(
     val isConnected: Boolean = false,
     val connectedEmail: String? = null,
     val geminiApiKey: String? = null,
-    val baseDailyBurn: Int = 1800
+    val baseDailyBurn: Int = 1800,
+    val carbsGoal: Int = 30,
+    val fatGoal: Int = 130,
+    val proteinMethod: String = "MULTIPLIER",
+    val proteinFixedGoal: Int = 150,
+    val proteinMultiplier: Float = 1.5f
 )

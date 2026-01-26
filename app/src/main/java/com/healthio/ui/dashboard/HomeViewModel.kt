@@ -43,7 +43,10 @@ data class HomeUiState(
     val todayCarbs: Int = 0,
     val todayFat: Int = 0,
     val baseDailyBurn: Int = 1800,
-    val currentWeight: Float? = null
+    val currentWeight: Float? = null,
+    val carbsGoal: Int = 30,
+    val fatGoal: Int = 130,
+    val proteinGoal: Int = 105
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -61,14 +64,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            val baseBurnFlow = context.dataStore.data.map { it[SettingsViewModel.BASE_DAILY_BURN] ?: 1800 }
+            val settingsFlow = context.dataStore.data.map { preferences ->
+                SettingsData(
+                    baseBurn = preferences[SettingsViewModel.BASE_DAILY_BURN] ?: 1800,
+                    carbsGoal = preferences[SettingsViewModel.DAILY_CARBS_GOAL] ?: 30,
+                    fatGoal = preferences[SettingsViewModel.DAILY_FAT_GOAL] ?: 130,
+                    pMethod = preferences[SettingsViewModel.PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
+                    pFixed = preferences[SettingsViewModel.PROTEIN_FIXED_GOAL] ?: 150,
+                    pMult = preferences[SettingsViewModel.PROTEIN_MULTIPLIER] ?: 1.5f
+                )
+            }
             
             combine(
                 repository.isFasting, 
                 repository.startTime,
                 mealRepository.getTodayCalories(),
                 workoutRepository.getTodayBurnedCalories(),
-                baseBurnFlow,
+                settingsFlow,
                 mealRepository.getTodayProtein(),
                 mealRepository.getTodayCarbs(),
                 mealRepository.getTodayFat()
@@ -77,12 +89,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val startTime = args[1] as Long?
                 val calories = args[2] as Int?
                 val burned = args[3] as Int?
-                val baseBurn = args[4] as Int
+                val settings = args[4] as SettingsData
                 val protein = args[5] as Int?
                 val carbs = args[6] as Int?
                 val fat = args[7] as Int?
                 
-                HomeData(isFasting, startTime, calories, burned, baseBurn, protein, carbs, fat)
+                HomeData(
+                    isFasting, startTime, calories, burned, settings.baseBurn, protein, carbs, fat,
+                    settings.carbsGoal, settings.fatGoal, settings.pMethod, settings.pFixed, settings.pMult
+                )
             }.combine(weightRepository.getLatestWeight().onStart { emit(null) }) { data, weight ->
                 updateState(data, weight?.valueKg)
             }.collect { }
@@ -100,6 +115,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val dayProgress = (hoursPassed * 60 + minutesPassed) / 1440f
         
         val dynamicBaseBurn = (data.baseBurn * dayProgress).toInt()
+        
+        val currentWeightKg = weight ?: 70f
+        val proteinGoal = if (data.pMethod == "FIXED") {
+            data.pFixed
+        } else {
+            (data.pMult * currentWeightKg).toInt()
+        }
 
         _uiState.value = _uiState.value.copy(
             timerState = if (data.isFasting) TimerState.FASTING else TimerState.EATING,
@@ -110,10 +132,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             todayCarbs = data.carbs ?: 0,
             todayFat = data.fat ?: 0,
             baseDailyBurn = data.baseBurn,
-            currentWeight = weight
+            currentWeight = weight,
+            carbsGoal = data.carbsGoal,
+            fatGoal = data.fatGoal,
+            proteinGoal = proteinGoal
         )
         calculateProgress()
     }
+
+    data class SettingsData(
+        val baseBurn: Int,
+        val carbsGoal: Int,
+        val fatGoal: Int,
+        val pMethod: String,
+        val pFixed: Int,
+        val pMult: Float
+    )
 
     data class HomeData(
         val isFasting: Boolean, 
@@ -123,7 +157,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val baseBurn: Int,
         val protein: Int?,
         val carbs: Int?,
-        val fat: Int?
+        val fat: Int?,
+        val carbsGoal: Int,
+        val fatGoal: Int,
+        val pMethod: String,
+        val pFixed: Int,
+        val pMult: Float
     )
 
     private fun startTimer() {

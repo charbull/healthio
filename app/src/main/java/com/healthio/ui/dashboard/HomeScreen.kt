@@ -419,7 +419,7 @@ fun MacroSection(uiState: HomeUiState) {
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Protein
-                val proteinGoal = (1.5 * (uiState.currentWeight ?: 70f)).toInt()
+                val proteinGoal = uiState.proteinGoal
                 val proteinProgress = if (proteinGoal > 0) uiState.todayProtein.toFloat() / proteinGoal else 0f
                 val proteinColor = when {
                     proteinProgress >= 0.9f -> Color(0xFF4CAF50) // Green when close to or over goal
@@ -434,8 +434,8 @@ fun MacroSection(uiState: HomeUiState) {
                 )
 
                 // Carbs
-                val carbGoal = 30
-                val carbProgress = uiState.todayCarbs.toFloat() / carbGoal
+                val carbGoal = uiState.carbsGoal
+                val carbProgress = if (carbGoal > 0) uiState.todayCarbs.toFloat() / carbGoal else 0f
                 val carbColor = when {
                     carbProgress >= 0.8f -> Color(0xFFF44336) // Red when close to or over limit
                     else -> Color(0xFFFFC107) // Yellow default
@@ -452,7 +452,7 @@ fun MacroSection(uiState: HomeUiState) {
                 MacroProgressBar(
                     label = "Fat",
                     value = uiState.todayFat,
-                    goal = 130,
+                    goal = uiState.fatGoal,
                     color = Color(0xFFE91E63),
                     unit = "g"
                 )

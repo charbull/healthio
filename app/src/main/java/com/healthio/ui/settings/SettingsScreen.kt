@@ -5,6 +5,8 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -83,6 +85,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -183,6 +186,81 @@ fun SettingsScreen(
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true
                     )
+                }
+            }
+
+            Text(
+                text = "Nutrition Goals",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Carbs
+                    OutlinedTextField(
+                        value = uiState.carbsGoal.toString(),
+                        onValueChange = { viewModel.setCarbsGoal(it.toIntOrNull() ?: 0) },
+                        label = { Text("Daily Carbs Goal (g)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Fat
+                    OutlinedTextField(
+                        value = uiState.fatGoal.toString(),
+                        onValueChange = { viewModel.setFatGoal(it.toIntOrNull() ?: 0) },
+                        label = { Text("Daily Fat Goal (g)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("Protein Goal", style = MaterialTheme.typography.labelLarge)
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = uiState.proteinMethod == "MULTIPLIER",
+                            onClick = { viewModel.setProteinMethod("MULTIPLIER") }
+                        )
+                        Text("Based on Body Weight")
+                    }
+                    if (uiState.proteinMethod == "MULTIPLIER") {
+                        OutlinedTextField(
+                            value = uiState.proteinMultiplier.toString(),
+                            onValueChange = { viewModel.setProteinMultiplier(it.toFloatOrNull() ?: 0f) },
+                            label = { Text("Multiplier (e.g., 1.5 x Weight)") },
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                            singleLine = true
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = uiState.proteinMethod == "FIXED",
+                            onClick = { viewModel.setProteinMethod("FIXED") }
+                        )
+                        Text("Fixed Amount")
+                    }
+                    if (uiState.proteinMethod == "FIXED") {
+                        OutlinedTextField(
+                            value = uiState.proteinFixedGoal.toString(),
+                            onValueChange = { viewModel.setProteinFixedGoal(it.toIntOrNull() ?: 0) },
+                            label = { Text("Daily Protein (g)") },
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
                 }
             }
 
