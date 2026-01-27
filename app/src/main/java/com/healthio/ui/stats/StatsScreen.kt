@@ -238,11 +238,40 @@ fun StatsScreen(
 
 @Composable
 fun MealHistoryList(meals: List<MealLog>, onMealClick: (MealLog) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        meals.forEach { meal ->
-            MealHistoryItem(meal, onClick = { onMealClick(meal) })
+    val groupedMeals = remember(meals) {
+        val zoneId = java.time.ZoneId.systemDefault()
+        meals.sortedByDescending { it.timestamp }
+            .groupBy { 
+                java.time.Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate() 
+            }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        groupedMeals.forEach { (date, dailyMeals) ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MealHeader(date)
+                dailyMeals.forEach { meal ->
+                    MealHistoryItem(meal, onClick = { onMealClick(meal) })
+                }
+            }
         }
     }
+}
+
+@Composable
+fun MealHeader(date: java.time.LocalDate) {
+    val today = java.time.LocalDate.now()
+    val label = when {
+        date.isEqual(today) -> "Today"
+        date.isEqual(today.minusDays(1)) -> "Yesterday"
+        else -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM dd"))
+    }
+    
+    Text(
+        text = label,
+        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary),
+        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+    )
 }
 
 @Composable
@@ -255,7 +284,7 @@ fun MealHistoryItem(meal: MealLog, onClick: () -> Unit) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = meal.foodName, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 val date = Date(meal.timestamp)
-                val format = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+                val format = SimpleDateFormat("HH:mm", Locale.getDefault())
                 Text(text = format.format(date), style = MaterialTheme.typography.bodySmall)
             }
             Spacer(modifier = Modifier.height(4.dp))

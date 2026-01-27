@@ -28,7 +28,7 @@ object WeightSeriesCalculator {
         }
 
         val chartStartDate = when (range) {
-            TimeRange.Week -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            TimeRange.Week -> today.minusDays(6)
             TimeRange.Month -> today.withDayOfMonth(1)
             TimeRange.Year -> today.withDayOfYear(1)
         }
@@ -41,11 +41,13 @@ object WeightSeriesCalculator {
                 lastKnownWeightKg = log.valueKg
             } else {
                 val index = when (range) {
-                    TimeRange.Week, TimeRange.Month -> ChronoUnit.DAYS.between(chartStartDate, logDate).toInt() + 1
+                    TimeRange.Week -> ChronoUnit.DAYS.between(chartStartDate, logDate).toInt() + 1
+                    TimeRange.Month -> ChronoUnit.DAYS.between(chartStartDate, logDate).toInt() + 1
                     TimeRange.Year -> if (logDate.year == today.year) logDate.monthValue else -1
                 }
 
                 if (index in 1..bucketCount) {
+                    // If multiple logs on same day, take the latest one (sorted order helps)
                     weightMap[index] = log.valueKg
                 }
             }

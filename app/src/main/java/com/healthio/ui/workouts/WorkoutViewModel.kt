@@ -180,11 +180,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 // 3. Sync Weights (Last 365 Days)
                 val weightStart = today.minusDays(365).atStartOfDay(zoneId).toInstant()
                 val weights = healthConnectManager.fetchWeights(weightStart, now)
-                val existingWeightIds = weightRepository.getImportedExternalIds().toSet()
                 
                 var addedWeightCount = 0
+                var updatedWeightCount = 0
+                
                 weights.forEach { weight ->
-                    if (weight.externalId !in existingWeightIds) {
+                    val existing = weightRepository.getWeightByExternalId(weight.externalId)
+                    if (existing == null) {
                         weightRepository.logWeight(
                             WeightLog(
                                 timestamp = weight.timestamp.toEpochMilli(),
@@ -194,6 +196,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                             )
                         )
                         addedWeightCount++
+                    } else if (existing.valueKg != weight.valueKg.toFloat() || existing.timestamp != weight.timestamp.toEpochMilli()) {
+                        weightRepository.updateWeight(
+                            existing.copy(
+                                timestamp = weight.timestamp.toEpochMilli(),
+                                valueKg = weight.valueKg.toFloat()
+                            )
+                        )
+                        updatedWeightCount++
                     }
                 }
 
@@ -202,7 +212,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 if (totalNewWorkouts > 0) parts.add("$totalNewWorkouts workouts")
                 if (totalDaysUpdated > 0) parts.add("active calories updated for $totalDaysUpdated days")
                 if (weights.isNotEmpty()) {
-                    parts.add("$addedWeightCount new weights (found ${weights.size})")
+                    val msg = if (updatedWeightCount > 0) "$addedWeightCount new, $updatedWeightCount updated weights" else "$addedWeightCount new weights"
+                    parts.add("$msg (found ${weights.size})")
                 } else {
                     parts.add("0 weights found")
                 }

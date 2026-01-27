@@ -139,7 +139,14 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val today = LocalDate.now(zoneId)
         
         val labels = when (range) {
-            TimeRange.Week -> listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            TimeRange.Week -> {
+                // Rolling 7 days: 6 days ago until today
+                (0..6).map { offset ->
+                    val date = today.minusDays(6L - offset)
+                    val name = date.dayOfWeek.name.take(3).lowercase()
+                    name.substring(0, 1).uppercase() + name.substring(1)
+                }
+            }
             TimeRange.Month -> (1..today.lengthOfMonth()).map { it.toString() }
             TimeRange.Year -> listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
         }

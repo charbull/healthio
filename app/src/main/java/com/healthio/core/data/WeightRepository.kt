@@ -13,6 +13,10 @@ class WeightRepository(context: Context) {
         dao.insertWeight(weight)
     }
 
+    suspend fun updateWeight(weight: WeightLog) {
+        dao.updateWeight(weight)
+    }
+
     fun getLatestWeight(): Flow<WeightLog?> {
         return dao.getLatestWeight()
     }
@@ -23,5 +27,9 @@ class WeightRepository(context: Context) {
 
     suspend fun getImportedExternalIds(): List<String> {
         return dao.getImportedExternalIds()
+    }
+
+    suspend fun getWeightByExternalId(externalId: String): WeightLog? {
+        return dao.getWeightByExternalId(externalId)
     }
 }

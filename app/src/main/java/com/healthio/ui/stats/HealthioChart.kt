@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
@@ -32,7 +33,8 @@ fun HealthioChart(
     val chartEntryModelProducer = remember(series) { ChartEntryModelProducer(series) }
     
     val horizontalAxisValueFormatter = AxisValueFormatter<AxisPosition.Horizontal.Bottom> { value, _ ->
-        labels.getOrNull(value.toInt()) ?: ""
+        val index = value.toInt()
+        if (index in labels.indices) labels[index] else ""
     }
 
     // Define colors for series
@@ -71,7 +73,8 @@ fun HealthioChart(
         val sums = mutableMapOf<Int, Float>()
         series.forEach { s ->
             s.forEach { entry ->
-                sums[entry.x.toInt()] = (sums[entry.x.toInt()] ?: 0f) + entry.y
+                val x = entry.x.toInt()
+                sums[x] = (sums[x] ?: 0f) + entry.y
             }
         }
         sums.values.maxOrNull() ?: 0f
@@ -92,8 +95,14 @@ fun HealthioChart(
         lineChart(
             lines = columnColors.map { color ->
                 com.patrykandpatrick.vico.core.chart.line.LineChart.LineSpec(
-                    lineColor = color.hashCode(),
-                    lineThicknessDp = 3f
+                    lineColor = color.toArgb(),
+                    lineThicknessDp = 3f,
+                    point = lineComponent(
+                        color = color,
+                        thickness = 8.dp,
+                        shape = Shapes.pillShape
+                    ),
+                    pointSizeDp = 8f
                 )
             }
         )

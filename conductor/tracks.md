@@ -46,3 +46,5 @@
 | 31 | Keto & Insulin Insights | **Completed** | [View Track](./tracks/track-31-keto-insulin-insights/index.md) |
 | 32 | Health Connect Sync | **Completed** | [View Track](./tracks/track-32-health-connect-sync/index.md) |
 | 33 | Weight Tracking | **Completed** | [View Track](./tracks/track-33-weight-tracking/index.md) |
+| 34 | Weight History Refinement | **Completed** | [View Track](./tracks/track-34-weight-refinement/index.md) |
+| 35 | Meal History Grouping | **Completed** | [View Track](./tracks/track-35-meal-grouping/index.md) |
