@@ -19,6 +19,7 @@ import com.patrykandpatrick.vico.core.chart.line.LineChart
 import com.patrykandpatrick.vico.core.component.shape.Shapes
 import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
+import com.patrykandpatrick.vico.core.chart.values.AxisValuesOverrider
 
 @Composable
 fun HealthioChart(
@@ -68,7 +69,8 @@ fun HealthioChart(
         else -> 12.dp
     }
 
-    val maxValue = if (isMacros) {
+    val flattened = series.flatten()
+    val maxDataY = if (isMacros) {
         // For stacked, max is the sum of Ys at the same index
         val sums = mutableMapOf<Int, Float>()
         series.forEach { s ->
@@ -79,19 +81,27 @@ fun HealthioChart(
         }
         sums.values.maxOrNull() ?: 0f
     } else {
-        series.flatten().maxByOrNull { it.y }?.y ?: 0f
+        flattened.maxByOrNull { it.y }?.y ?: 0f
     }
+    
+    val minDataY = if (isMacros) 0f else flattened.minByOrNull { it.y }?.y ?: 0f
 
     val verticalItemPlacer = com.patrykandpatrick.vico.core.axis.AxisItemPlacer.Vertical.default(
         maxItemCount = when {
             isMacros -> 6 // 0, 20, 40, 60, 80, 100
-            maxValue <= 0f -> 5
-            maxValue <= 5f -> (maxValue.toInt() + 1).coerceAtLeast(2)
+            maxDataY <= 0f -> 5
+            maxDataY <= 5f -> (maxDataY.toInt() + 1).coerceAtLeast(2)
             else -> 5
         }
     )
 
     val chart = if (isLineChart) {
+        // Dynamic range for weight: Min value - 10% buffer, Max value + 10% buffer
+        val range = maxDataY - minDataY
+        val buffer = if (range == 0f) maxDataY * 0.1f else range * 0.1f
+        val minY = (minDataY - buffer).coerceAtLeast(0f)
+        val maxY = maxDataY + buffer
+        
         lineChart(
             lines = columnColors.map { color ->
                 com.patrykandpatrick.vico.core.chart.line.LineChart.LineSpec(
@@ -104,7 +114,8 @@ fun HealthioChart(
                     ),
                     pointSizeDp = 8f
                 )
-            }
+            },
+            axisValuesOverrider = AxisValuesOverrider.fixed(minY = minY, maxY = maxY)
         )
     } else {
         columnChart(

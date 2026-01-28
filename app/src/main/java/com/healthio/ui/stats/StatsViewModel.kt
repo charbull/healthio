@@ -20,6 +20,9 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
+import com.healthio.core.data.dataStore
+import com.healthio.ui.settings.SettingsViewModel
+
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val fastingRepository = FastingRepository(application)
     private val db = AppDatabase.getDatabase(application)
@@ -73,8 +76,15 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private var allWorkoutLogs: List<WorkoutLog> = emptyList()
     private var allMealLogs: List<MealLog> = emptyList()
     private var allWeightLogs: List<com.healthio.core.database.WeightLog> = emptyList()
+    private var baseDailyBurn = 1800
 
     init {
+        viewModelScope.launch {
+            application.dataStore.data.collect { prefs ->
+                baseDailyBurn = prefs[SettingsViewModel.BASE_DAILY_BURN] ?: 1800
+                updateChartData()
+            }
+        }
         viewModelScope.launch {
             fastingRepository.fastingHistory.collect { history ->
                 allFastingLogs = history
@@ -280,7 +290,34 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
                 for (i in 1..bucketCount) {
                     val intake = intakeMap[i] ?: 0
-                    val burned = burnedMap[i] ?: 0
+                    var burned = burnedMap[i] ?: 0
+                    
+                    // Add BMR (Basal Metabolic Rate) to the total burned, but only for past/present days
+                    val isFuture = when (range) {
+                        TimeRange.Week -> false // Rolling week is always past/present
+                        TimeRange.Month -> i > today.dayOfMonth
+                        TimeRange.Year -> i > today.monthValue
+                    }
+                    
+                    if (!isFuture) {
+                        if (range == TimeRange.Year) {
+                            // For Year view, buckets are months. Add BMR * DaysInMonth.
+                            // If it's the current month, we could argue to only add BMR up to today, 
+                            // but usually monthly stats show the "pace". 
+                            // For simplicity and to match intake (which might be partial), we'll add full days for past months
+                            // and days-so-far for current month to avoid huge projected deficit.
+                            val daysInMonth = if (i == today.monthValue) {
+                                today.dayOfMonth
+                            } else {
+                                java.time.YearMonth.of(today.year, i).lengthOfMonth()
+                            }
+                            burned += (baseDailyBurn * daysInMonth)
+                        } else {
+                            // Week or Month view: buckets are days
+                            burned += baseDailyBurn
+                        }
+                    }
+
                     val net = (intake - burned).toFloat()
                     
                     if (net > 0) {
