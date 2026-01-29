@@ -49,3 +49,4 @@
 | 34 | Weight History Refinement | **Completed** | [View Track](./tracks/track-34-weight-refinement/index.md) |
 | 35 | Meal History Grouping | **Completed** | [View Track](./tracks/track-35-meal-grouping/index.md) |
 | 36 | Weight Trend Axis | **Completed** | [View Track](./tracks/track-36-weight-axis/index.md) |
+| 37 | Calorie Burn Logic | **Completed** | [View Track](./tracks/track-37-calorie-logic/index.md) |

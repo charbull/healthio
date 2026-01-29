@@ -122,58 +122,28 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                     totalNewWorkouts += dayNewCount
 
-                    // 2. Calculate Active Burn Adjustment for this day
-                    var dayTotalActive = healthConnectManager.fetchActiveCalories(dayStart, actualEnd)
+                    // 2. Fetch & Insert "Health Connect Daily Total" (Active + Resting)
+                    val dayTotalCalories = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
                     
-                    // Fallback logic if Active is missing but Total is present
-                    if (dayTotalActive == 0) {
-                        val total = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
-                        if (total > 0) {
-                            val bmrRate = healthConnectManager.fetchBasalMetabolicRate(dayStart, actualEnd)
-                            if (bmrRate > 0) {
-                                // Calculate BMR energy for the elapsed time in this window
-                                val seconds = java.time.Duration.between(dayStart, actualEnd).seconds
-                                val dayFraction = seconds / 86400.0
-                                val bmrEnergy = (bmrRate * dayFraction).toInt()
-                                
-                                dayTotalActive = (total - bmrEnergy).coerceAtLeast(0)
-                            } else {
-                                // Rough estimate if BMR record missing but Total exists
-                                dayTotalActive = (total * 0.25).toInt() 
-                            }
-                        }
-                    }
-
-                    // Upsert the adjustment (Delete old, Insert new)
-                    val adjId = "daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
+                    val dailyTotalId = "hc_daily_total_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
                     
-                    // Always clean up potential duplicates or old values
-                    repository.deleteWorkoutByExternalId(adjId)
+                    // Always clean up potential duplicates
+                    repository.deleteWorkoutByExternalId(dailyTotalId)
+                    // Also clean up old "Active Burn" adjustments if they exist from previous versions
+                    repository.deleteWorkoutByExternalId("daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}")
 
-                    if (dayTotalActive > 0) {
-                        // Refresh DB list to include any just-inserted workouts
-                        val updatedDbWorkouts = repository.getWorkoutsBetween(dayStart.toEpochMilli(), actualEnd.toEpochMilli())
-                        
-                        // Sum calories from explicit workouts (Manual + Imported)
-                        val knownSessionCalories = updatedDbWorkouts
-                            .filter { it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" }
-                            .sumOf { it.calories }
-                        
-                        val adjustment = (dayTotalActive - knownSessionCalories).coerceAtLeast(0)
-
-                        if (adjustment > 0) {
-                            repository.logWorkout(
-                                WorkoutLog(
-                                    timestamp = dayStart.toEpochMilli() + 60000, // 1 min past midnight
-                                    type = "Daily Active Burn",
-                                    calories = adjustment,
-                                    durationMinutes = 0,
-                                    source = "Health Connect",
-                                    externalId = adjId
-                                )
+                    if (dayTotalCalories > 0) {
+                        repository.logWorkout(
+                            WorkoutLog(
+                                timestamp = dayStart.toEpochMilli() + 60000, // 1 min past midnight
+                                type = "Health Connect Daily",
+                                calories = dayTotalCalories,
+                                durationMinutes = 0,
+                                source = "Health Connect",
+                                externalId = dailyTotalId
                             )
-                            totalDaysUpdated++
-                        }
+                        )
+                        totalDaysUpdated++
                     }
                 }
 

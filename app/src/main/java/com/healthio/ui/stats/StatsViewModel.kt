@@ -274,13 +274,78 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // 2. Burned
                 val burnedMap = mutableMapOf<Int, Int>()
+                
+                // Group workout logs by bucket
+                val workoutsByBucket = mutableMapOf<Int, MutableList<WorkoutLog>>()
                 allWorkoutLogs.forEach { log ->
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include && index in 1..bucketCount) {
-                        burnedMap[index] = (burnedMap[index] ?: 0) + log.calories
-                        totalBurned += log.calories
+                        workoutsByBucket.getOrPut(index) { mutableListOf() }.add(log)
                     }
+                }
+
+                // Calculate total burn per bucket
+                for (i in 1..bucketCount) {
+                    val logs = workoutsByBucket[i] ?: emptyList()
+                    
+                    val hcDailyLogs = logs.filter { it.type == "Health Connect Daily" }
+                    val manualLogs = logs.filter { it.source == "Manual" }
+                    val otherImportedLogs = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" } // Include "Daily Active Burn" for legacy support
+
+                    var bucketBurn = 0
+                    
+                    if (hcDailyLogs.isNotEmpty()) {
+                        // Scenario 1: Health Connect Sync Exists
+                        // Total = HC Total + Manual Workouts
+                        bucketBurn = hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
+                    } else {
+                        // Scenario 2: No Health Connect Sync (Fallback)
+                        // Total = BMR + All Workouts (Manual + Imported Individual)
+                        val workoutSum = manualLogs.sumOf { it.calories } + otherImportedLogs.sumOf { it.calories }
+                        
+                        // Add BMR (Basal Metabolic Rate)
+                        val isFuture = when (range) {
+                            TimeRange.Week -> false
+                            TimeRange.Month -> i > today.dayOfMonth
+                            TimeRange.Year -> i > today.monthValue
+                        }
+                        
+                        val isToday = when (range) {
+                            TimeRange.Week -> i == 7
+                            TimeRange.Month -> i == today.dayOfMonth
+                            TimeRange.Year -> false // Handled inside month logic
+                        }
+                        
+                        var bmrAddition = 0
+                        if (!isFuture) {
+                            if (range == TimeRange.Year) {
+                                if (i == today.monthValue) {
+                                    // Current Month: Past days full BMR + Today pro-rated
+                                    val now = java.time.LocalTime.now(zoneId)
+                                    val dayProgress = now.toSecondOfDay() / 86400f
+                                    val pastDays = today.dayOfMonth - 1
+                                    bmrAddition = (baseDailyBurn * pastDays) + (baseDailyBurn * dayProgress).toInt()
+                                } else {
+                                    // Past Month
+                                    val daysInMonth = java.time.YearMonth.of(today.year, i).lengthOfMonth()
+                                    bmrAddition = baseDailyBurn * daysInMonth
+                                }
+                            } else {
+                                // Week or Month view: buckets are days
+                                if (isToday) {
+                                    val now = java.time.LocalTime.now(zoneId)
+                                    val dayProgress = now.toSecondOfDay() / 86400f
+                                    bmrAddition = (baseDailyBurn * dayProgress).toInt()
+                                } else {
+                                    bmrAddition = baseDailyBurn
+                                }
+                            }
+                        }
+                        bucketBurn = workoutSum + bmrAddition
+                    }
+                    burnedMap[i] = bucketBurn
+                    totalBurned += bucketBurn
                 }
                 
                 // 3. Process Series
@@ -290,34 +355,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
                 for (i in 1..bucketCount) {
                     val intake = intakeMap[i] ?: 0
-                    var burned = burnedMap[i] ?: 0
+                    val burned = burnedMap[i] ?: 0
                     
-                    // Add BMR (Basal Metabolic Rate) to the total burned, but only for past/present days
-                    val isFuture = when (range) {
-                        TimeRange.Week -> false // Rolling week is always past/present
-                        TimeRange.Month -> i > today.dayOfMonth
-                        TimeRange.Year -> i > today.monthValue
-                    }
-                    
-                    if (!isFuture) {
-                        if (range == TimeRange.Year) {
-                            // For Year view, buckets are months. Add BMR * DaysInMonth.
-                            // If it's the current month, we could argue to only add BMR up to today, 
-                            // but usually monthly stats show the "pace". 
-                            // For simplicity and to match intake (which might be partial), we'll add full days for past months
-                            // and days-so-far for current month to avoid huge projected deficit.
-                            val daysInMonth = if (i == today.monthValue) {
-                                today.dayOfMonth
-                            } else {
-                                java.time.YearMonth.of(today.year, i).lengthOfMonth()
-                            }
-                            burned += (baseDailyBurn * daysInMonth)
-                        } else {
-                            // Week or Month view: buckets are days
-                            burned += baseDailyBurn
-                        }
-                    }
-
                     val net = (intake - burned).toFloat()
                     
                     if (net > 0) {
