@@ -293,12 +293,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     val manualLogs = logs.filter { it.source == "Manual" }
                     val otherImportedLogs = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" } // Include "Daily Active Burn" for legacy support
 
-                    var bucketBurn = 0
-                    
-                    if (hcDailyLogs.isNotEmpty()) {
+                    val bucketBurn = if (hcDailyLogs.isNotEmpty()) {
                         // Scenario 1: Health Connect Sync Exists
                         // Total = HC Total + Manual Workouts
-                        bucketBurn = hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
+                        hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
                     } else {
                         // Scenario 2: No Health Connect Sync (Fallback)
                         // Total = BMR + All Workouts (Manual + Imported Individual)
@@ -342,7 +340,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                                 }
                             }
                         }
-                        bucketBurn = workoutSum + bmrAddition
+                        workoutSum + bmrAddition
                     }
                     burnedMap[i] = bucketBurn
                     totalBurned += bucketBurn

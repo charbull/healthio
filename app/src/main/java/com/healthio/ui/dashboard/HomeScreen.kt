@@ -291,11 +291,12 @@ fun HomeScreen(
                 }
             }
 
-            // Section 1: Energy Dashboard
-            EnergySection(
+            // Section 1: Fasting Control
+            FastingSection(
                 uiState = uiState,
-                onAddWorkout = { showWorkoutDialog = true },
-                onAddMeal = { showAddMealDialog = true }
+                onStartFast = { viewModel.startFastNow() },
+                onEndFast = { viewModel.requestEndFast() },
+                onManualEntry = { showEntryTypeDialog = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -309,12 +310,11 @@ fun HomeScreen(
             Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Section 2: Fasting Control
-            FastingSection(
+            // Section 2: Energy Dashboard
+            EnergySection(
                 uiState = uiState,
-                onStartFast = { viewModel.startFastNow() },
-                onEndFast = { viewModel.requestEndFast() },
-                onManualEntry = { showEntryTypeDialog = true }
+                onAddWorkout = { showWorkoutDialog = true },
+                onAddMeal = { showAddMealDialog = true }
             )
             
             Spacer(modifier = Modifier.height(24.dp))

@@ -42,6 +42,9 @@ android {
         kotlinCompilerExtensionVersion = "1.5.4"
     }
     packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/DEPENDENCIES"

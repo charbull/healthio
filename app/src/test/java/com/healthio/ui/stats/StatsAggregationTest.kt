@@ -114,7 +114,7 @@ class StatsAggregationTest {
         )
         
         val logs = listOf(day1, day15, day31)
-        val (p, c, f) = aggregateMacros(logs, range, today)
+        val (p, _, _) = aggregateMacros(logs, range, today)
         
         assertEquals(10f, p[1] ?: 0f, 0.01f)
         assertEquals(20f, p[15] ?: 0f, 0.01f)
