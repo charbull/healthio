@@ -90,6 +90,44 @@ fun SettingsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
+                text = "General",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Weight Unit",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = uiState.weightUnit == "KG",
+                            onClick = { viewModel.setWeightUnit("KG") }
+                        )
+                        Text("Kilograms (kg)")
+                        Spacer(modifier = Modifier.width(24.dp))
+                        RadioButton(
+                            selected = uiState.weightUnit == "LBS",
+                            onClick = { viewModel.setWeightUnit("LBS") }
+                        )
+                        Text("Pounds (lbs)")
+                    }
+                }
+            }
+
+            Text(
                 text = "Backup & Sync",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)

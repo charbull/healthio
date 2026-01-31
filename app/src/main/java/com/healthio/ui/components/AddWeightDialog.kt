@@ -12,8 +12,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun AddWeightDialog(
     onDismiss: () -> Unit,
-    onSave: (Float) -> Unit, // Weight in Lbs
-    onSync: () -> Unit
+    onSave: (Float) -> Unit, // Weight in current unit
+    onSync: () -> Unit,
+    unit: String = "LBS"
 ) {
     var weightText by remember { mutableStateOf("") }
     
@@ -25,7 +26,7 @@ fun AddWeightDialog(
                 OutlinedTextField(
                     value = weightText,
                     onValueChange = { weightText = it },
-                    label = { Text("Weight (lbs)") },
+                    label = { Text("Weight (${unit.lowercase()})") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()

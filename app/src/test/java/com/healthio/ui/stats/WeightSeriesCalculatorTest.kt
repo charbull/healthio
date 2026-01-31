@@ -37,26 +37,39 @@ class WeightSeriesCalculatorTest {
 
         val logs = listOf(historyLog, satLog, sunLog)
         
-        val result = WeightSeriesCalculator.calculate(
+        val resultLbs = WeightSeriesCalculator.calculate(
             allWeightLogs = logs,
             range = TimeRange.Week,
             today = today,
-            zoneId = zoneId
+            zoneId = zoneId,
+            unit = "LBS"
         )
         
         // Verify we have 7 entries (Mon-Sun)
-        assertEquals("Should have 7 entries", 7, result.size)
+        assertEquals("Should have 7 entries", 7, resultLbs.size)
         
         // Mon (0) - Fri (4) should match history (190)
         // 86.1825 * 2.20462 = 189.999... -> 190
         for (i in 0..4) {
-            assertEquals("Day $i should be ~190", 190f, result[i].y, 0.1f)
+            assertEquals("Day $i should be ~190 lbs", 190f, resultLbs[i].y, 0.1f)
         }
         
         // Sat (5) should be 198
-        assertEquals("Day 5 (Sat) should be ~198", 198f, result[5].y, 0.1f)
+        assertEquals("Day 5 (Sat) should be ~198 lbs", 198f, resultLbs[5].y, 0.1f)
         
         // Sun (6) should be 196
-        assertEquals("Day 6 (Sun) should be ~196", 196f, result[6].y, 0.1f)
+        assertEquals("Day 6 (Sun) should be ~196 lbs", 196f, resultLbs[6].y, 0.1f)
+
+        val resultKg = WeightSeriesCalculator.calculate(
+            allWeightLogs = logs,
+            range = TimeRange.Week,
+            today = today,
+            zoneId = zoneId,
+            unit = "KG"
+        )
+
+        assertEquals("Day 0 should be ~86.2 kg", 86.1825f, resultKg[0].y, 0.1f)
+        assertEquals("Day 5 (Sat) should be ~89.8 kg", 89.8112f, resultKg[5].y, 0.1f)
+        assertEquals("Day 6 (Sun) should be ~88.9 kg", 88.9041f, resultKg[6].y, 0.1f)
     }
 }

@@ -50,6 +50,9 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _weightSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())
     val weightSeries: StateFlow<List<List<ChartEntry>>> = _weightSeries.asStateFlow()
+
+    private val _weightUnit = MutableStateFlow("LBS")
+    val weightUnit: StateFlow<String> = _weightUnit.asStateFlow()
     
     private val _recentMeals = MutableStateFlow<List<MealLog>>(emptyList())
     val recentMeals: StateFlow<List<MealLog>> = _recentMeals.asStateFlow()
@@ -82,6 +85,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             application.dataStore.data.collect { prefs ->
                 baseDailyBurn = prefs[SettingsViewModel.BASE_DAILY_BURN] ?: 1800
+                _weightUnit.value = prefs[SettingsViewModel.WEIGHT_UNIT] ?: "LBS"
                 updateChartData()
             }
         }
@@ -389,7 +393,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     allWeightLogs = allWeightLogs,
                     range = range,
                     today = today,
-                    zoneId = zoneId
+                    zoneId = zoneId,
+                    unit = _weightUnit.value
                 )
                 _weightSeries.value = listOf(weightEntries)
                 

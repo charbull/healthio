@@ -15,7 +15,8 @@ object WeightSeriesCalculator {
         allWeightLogs: List<WeightLog>,
         range: TimeRange,
         today: LocalDate,
-        zoneId: ZoneId
+        zoneId: ZoneId,
+        unit: String = "LBS"
     ): List<ChartEntry> {
         val sortedWeights = allWeightLogs.sortedBy { it.timestamp }
         val weightMap = mutableMapOf<Int, Float>()
@@ -63,8 +64,12 @@ object WeightSeriesCalculator {
             }
             
             if (lastKnownWeightKg != null) {
-                val weightLbs = lastKnownWeightKg!! * 2.20462f
-                weightEntries.add(entryOf(i - 1, weightLbs))
+                val value = if (unit == "LBS") {
+                    lastKnownWeightKg!! * 2.20462f
+                } else {
+                    lastKnownWeightKg!!
+                }
+                weightEntries.add(entryOf(i - 1, value))
             }
         }
         

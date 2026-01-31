@@ -232,7 +232,8 @@ fun HomeScreen(
             },
             onSync = {
                 workoutViewModel.syncFromHealthConnect()
-            }
+            },
+            unit = uiState.weightUnit
         )
     }
 
@@ -332,9 +333,13 @@ fun HomeScreen(
                     Column {
                         Text(text = "Current Weight", style = MaterialTheme.typography.labelMedium)
                         val weightText = if (uiState.currentWeight != null) {
-                            String.format("%.1f lbs", uiState.currentWeight!! * 2.20462f)
+                            if (uiState.weightUnit == "LBS") {
+                                String.format("%.1f lbs", uiState.currentWeight!! * 2.20462f)
+                            } else {
+                                String.format("%.1f kg", uiState.currentWeight!!)
+                            }
                         } else {
-                            "-- lbs"
+                            if (uiState.weightUnit == "LBS") "-- lbs" else "-- kg"
                         }
                         Text(
                             text = weightText,

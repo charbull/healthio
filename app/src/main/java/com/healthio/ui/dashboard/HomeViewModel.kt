@@ -44,6 +44,7 @@ data class HomeUiState(
     val todayFat: Int = 0,
     val baseDailyBurn: Int = 1800,
     val currentWeight: Float? = null,
+    val weightUnit: String = "LBS",
     val carbsGoal: Int = 30,
     val fatGoal: Int = 130,
     val proteinGoal: Int = 105
@@ -71,7 +72,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     fatGoal = preferences[SettingsViewModel.DAILY_FAT_GOAL] ?: 130,
                     pMethod = preferences[SettingsViewModel.PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
                     pFixed = preferences[SettingsViewModel.PROTEIN_FIXED_GOAL] ?: 150,
-                    pMult = preferences[SettingsViewModel.PROTEIN_MULTIPLIER] ?: 1.5f
+                    pMult = preferences[SettingsViewModel.PROTEIN_MULTIPLIER] ?: 1.5f,
+                    weightUnit = preferences[SettingsViewModel.WEIGHT_UNIT] ?: "LBS"
                 )
             }
             
@@ -96,7 +98,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 
                 HomeData(
                     isFasting, startTime, calories, burned, settings.baseBurn, protein, carbs, fat,
-                    settings.carbsGoal, settings.fatGoal, settings.pMethod, settings.pFixed, settings.pMult
+                    settings.carbsGoal, settings.fatGoal, settings.pMethod, settings.pFixed, settings.pMult,
+                    settings.weightUnit
                 )
             }.combine(weightRepository.getLatestWeight().onStart { emit(null) }) { data, weight ->
                 updateState(data, weight?.valueKg)
@@ -118,10 +121,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         )
         
         val currentWeightKg = weight ?: 70f
+        val displayWeight = if (data.weightUnit == "LBS") {
+            currentWeightKg * 2.20462f
+        } else {
+            currentWeightKg
+        }
+        
         val proteinGoal = if (data.pMethod == "FIXED") {
             data.pFixed
         } else {
-            (data.pMult * currentWeightKg).toInt()
+            (data.pMult * displayWeight).toInt()
         }
 
         _uiState.value = _uiState.value.copy(
@@ -134,6 +143,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             todayFat = data.fat ?: 0,
             baseDailyBurn = data.baseBurn,
             currentWeight = weight,
+            weightUnit = data.weightUnit,
             carbsGoal = data.carbsGoal,
             fatGoal = data.fatGoal,
             proteinGoal = proteinGoal
@@ -147,7 +157,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val fatGoal: Int,
         val pMethod: String,
         val pFixed: Int,
-        val pMult: Float
+        val pMult: Float,
+        val weightUnit: String
     )
 
     data class HomeData(
@@ -163,7 +174,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val fatGoal: Int,
         val pMethod: String,
         val pFixed: Int,
-        val pMult: Float
+        val pMult: Float,
+        val weightUnit: String
     )
 
     private fun startTimer() {
@@ -281,8 +293,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logManualWeight(weightLbs: Float) {
-        val weightKg = weightLbs / 2.20462f
+    fun logManualWeight(weightValue: Float) {
+        val unit = _uiState.value.weightUnit
+        val weightKg = if (unit == "LBS") {
+            weightValue / 2.20462f
+        } else {
+            weightValue
+        }
         viewModelScope.launch {
             weightRepository.logWeight(
                 com.healthio.core.database.WeightLog(

@@ -19,7 +19,7 @@
 *   **Smart Reminders:** Intelligent notifications remind you to log meals (Breakfast, Lunch, Dinner) or workouts only if you haven't already.
 *   **Privacy-First Sync:** Securely sync your data to a Google Sheet in your personal Drive. Using the restricted `drive.file` scope, Healthio only interacts with its own files, keeping the rest of your Drive completely private.
 *   **Health Connect Integration:** Seamlessly import workouts, total daily active calories, and **Weight** data from wearables and smart scales (like Withings) via Google Health Connect.
-*   **Weight Tracking:** Monitor your weight trends with a clean time-series chart. Log weight manually or sync automatically from smart devices.
+*   **Weight Tracking:** Monitor your weight trends with a clean time-series chart. Log weight manually or sync automatically from smart devices. Supports both **kg** and **lbs** units.
 *   **Workout Logging:** Log workouts manually or sync to keep track of your active energy burn.
 *   **16 KB Device Support:** Fully optimized for next-generation Android devices with 16 KB page size support.
 *   **Modernized UI:** High-performance, edge-to-edge interface with Material 3 components and optimized system-wide themes.

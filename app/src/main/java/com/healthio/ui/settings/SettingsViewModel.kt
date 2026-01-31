@@ -35,6 +35,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val PROTEIN_CALC_METHOD = stringPreferencesKey("protein_calc_method")
         val PROTEIN_FIXED_GOAL = intPreferencesKey("protein_fixed_goal")
         val PROTEIN_MULTIPLIER = floatPreferencesKey("protein_multiplier")
+        val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
     }
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -52,7 +53,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     fatGoal = preferences[DAILY_FAT_GOAL] ?: 130,
                     proteinMethod = preferences[PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
                     proteinFixedGoal = preferences[PROTEIN_FIXED_GOAL] ?: 150,
-                    proteinMultiplier = preferences[PROTEIN_MULTIPLIER] ?: 1.5f
+                    proteinMultiplier = preferences[PROTEIN_MULTIPLIER] ?: 1.5f,
+                    weightUnit = preferences[WEIGHT_UNIT] ?: "LBS"
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -66,6 +68,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setBaseBurn(burn: Int) {
         viewModelScope.launch {
             context.dataStore.edit { it[BASE_DAILY_BURN] = burn }
+        }
+    }
+
+    fun setWeightUnit(unit: String) {
+        viewModelScope.launch {
+            context.dataStore.edit { it[WEIGHT_UNIT] = unit }
         }
     }
 
@@ -140,5 +148,6 @@ data class SettingsUiState(
     val fatGoal: Int = 130,
     val proteinMethod: String = "MULTIPLIER",
     val proteinFixedGoal: Int = 150,
-    val proteinMultiplier: Float = 1.5f
+    val proteinMultiplier: Float = 1.5f,
+    val weightUnit: String = "LBS"
 )

@@ -34,6 +34,7 @@ fun StatsScreen(
     val chartLabels by viewModel.chartLabels.collectAsState()
     val macroSeries by viewModel.macroSeries.collectAsState()
     val weightSeries by viewModel.weightSeries.collectAsState()
+    val weightUnit by viewModel.weightUnit.collectAsState()
     val recentMeals by viewModel.recentMeals.collectAsState()
     val summaryTitle by viewModel.summaryTitle.collectAsState()
     val summaryValue by viewModel.summaryValue.collectAsState()
@@ -207,7 +208,7 @@ fun StatsScreen(
             if (statType == StatType.Intake && weightSeries.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = "Weight Trend (lbs)",
+                    text = "Weight Trend (${weightUnit.lowercase()})",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
