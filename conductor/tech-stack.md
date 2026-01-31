@@ -16,7 +16,7 @@
 
 ## Backend / Services
 - **Database:** Firebase Firestore
-- **AI/ML:** Gemini 2.5 Pro API (via Google AI Client SDK or REST).
+- **AI/ML:** Gemini 1.5 Flash API (via Google AI Client SDK or REST).
 - **Auth:** Firebase Auth.
 
 ## Key Constraints
