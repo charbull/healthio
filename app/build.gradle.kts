@@ -12,8 +12,8 @@ android {
         applicationId = "com.healthio"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.0"
+        versionCode = 3
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,10 +21,20 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(project.findProperty("HEALTHIO_STORE_FILE") ?: "release.jks")
+            storePassword = project.findProperty("HEALTHIO_STORE_PASSWORD") as String?
+            keyAlias = project.findProperty("HEALTHIO_KEY_ALIAS") as String?
+            keyPassword = project.findProperty("HEALTHIO_KEY_PASSWORD") as String?
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
