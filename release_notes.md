@@ -1,9 +1,11 @@
-# Release Notes - v1.0.1
+# Release Notes - v1.0.2
 
-## v1.0.1 - Next-Gen Compatibility & UI Polish (2026-01-31)
+## v1.0.2 - Play Store Compliance & UI Polish (2026-01-31)
 
 ### 🚀 Performance & Compatibility
-*   **16 KB Device Support:** Fully optimized for next-generation high-performance Android devices. Native libraries are now correctly page-aligned to ensure seamless compatibility with future hardware.
+*   **API 35 Compliance:** Updated Target SDK to Android 15 (API 35) to meet the latest Play Store requirements.
+*   **16 KB Device Support:** Fully optimized for next-generation high-performance Android devices.
+ Native libraries are now correctly page-aligned to ensure seamless compatibility with future hardware.
 *   **Infrastructure Upgrade:** Upgraded to Gradle 8.7 and Android Gradle Plugin 8.4.0 for improved build reliability and performance.
 
 ### ✨ User Interface & Experience
