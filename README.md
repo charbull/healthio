@@ -21,6 +21,8 @@
 *   **Health Connect Integration:** Seamlessly import workouts, total daily active calories, and **Weight** data from wearables and smart scales (like Withings) via Google Health Connect.
 *   **Weight Tracking:** Monitor your weight trends with a clean time-series chart. Log weight manually or sync automatically from smart devices.
 *   **Workout Logging:** Log workouts manually or sync to keep track of your active energy burn.
+*   **16 KB Device Support:** Fully optimized for next-generation Android devices with 16 KB page size support.
+*   **Modernized UI:** High-performance, edge-to-edge interface with Material 3 components and optimized system-wide themes.
 *   **Historical Stats:** Visualize your progress with beautiful charts for Fasting consistency, Workout frequency, Nutrition trends, and Weight history over the Week, Month, and Year.
 
 ## Tech Stack
