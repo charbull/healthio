@@ -29,4 +29,10 @@ object StatsUtils {
             }
         }
     }
+
+    fun calculateProRatedBMR(baseDailyBurn: Int, hour: Int, minute: Int, second: Int): Int {
+        val secondsPassed = (hour * 3600) + (minute * 60) + second
+        val dayProgress = secondsPassed / 86400f
+        return (baseDailyBurn * dayProgress).toInt()
+    }
 }

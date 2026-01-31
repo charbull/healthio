@@ -36,8 +36,8 @@ class StatsAggregationTest {
         val logs = listOf(monMeal, monMeal2, tueMeal)
         val aggregated = aggregateCalories(logs, range, today)
         
-        assertEquals(700f, aggregated[1] ?: 0f, 0.01f) // Mon
-        assertEquals(300f, aggregated[2] ?: 0f, 0.01f) // Tue
+        assertEquals(700f, aggregated[7] ?: 0f, 0.01f) // Mon (Today) is index 7
+        assertEquals(0f, aggregated[8] ?: 0f, 0.01f) // Tue (Future) is excluded
     }
 
     @Test
@@ -59,9 +59,9 @@ class StatsAggregationTest {
         val logs = listOf(monMeal, monMeal2)
         val (p, c, f) = aggregateMacros(logs, range, today)
         
-        assertEquals(30f, p[1] ?: 0f, 0.01f) // Protein
-        assertEquals(40f, c[1] ?: 0f, 0.01f) // Carbs
-        assertEquals(15f, f[1] ?: 0f, 0.01f) // Fat
+        assertEquals(30f, p[7] ?: 0f, 0.01f) // Mon (Today) is index 7
+        assertEquals(40f, c[7] ?: 0f, 0.01f) // Carbs
+        assertEquals(15f, f[7] ?: 0f, 0.01f) // Fat
     }
 
     @Test

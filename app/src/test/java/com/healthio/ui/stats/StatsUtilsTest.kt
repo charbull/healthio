@@ -42,27 +42,26 @@ class StatsUtilsTest {
         // Jan 19, 2026 is Monday
         val today = LocalDate.of(2026, 1, 19)
         
-        // Monday (Start of week)
-        val mon = LocalDate.of(2026, 1, 19)
-        val (idxMon, incMon) = StatsUtils.getBucketIndex(mon, TimeRange.Week, today)
-        assertEquals(1, idxMon)
-        assertTrue("Monday should be included", incMon)
+        // Today (Monday) should be index 7
+        val (idxMon, incMon) = StatsUtils.getBucketIndex(today, TimeRange.Week, today)
+        assertEquals(7, idxMon)
+        assertTrue("Today should be included as index 7", incMon)
 
-        // Sunday (End of week)
-        val sun = LocalDate.of(2026, 1, 25)
-        val (idxSun, incSun) = StatsUtils.getBucketIndex(sun, TimeRange.Week, today)
-        assertEquals(7, idxSun)
-        assertTrue("Sunday should be included", incSun)
+        // 6 Days Ago (Tuesday Jan 13) should be index 1
+        val tues = LocalDate.of(2026, 1, 13)
+        val (idxTues, incTues) = StatsUtils.getBucketIndex(tues, TimeRange.Week, today)
+        assertEquals(1, idxTues)
+        assertTrue("6 days ago should be index 1", incTues)
 
-        // Previous Sunday (Excluded)
-        val prevSun = LocalDate.of(2026, 1, 18)
-        val (_, incPrevSun) = StatsUtils.getBucketIndex(prevSun, TimeRange.Week, today)
-        assertFalse("Previous Sunday should be excluded", incPrevSun)
+        // Previous Monday (Excluded)
+        val prevMon = LocalDate.of(2026, 1, 12)
+        val (_, incPrevMon) = StatsUtils.getBucketIndex(prevMon, TimeRange.Week, today)
+        assertFalse("7 days ago should be excluded", incPrevMon)
 
-        // Next Monday (Excluded)
-        val nextMon = LocalDate.of(2026, 1, 26)
-        val (_, incNextMon) = StatsUtils.getBucketIndex(nextMon, TimeRange.Week, today)
-        assertFalse("Next Monday should be excluded", incNextMon)
+        // Tomorrow (Excluded)
+        val tomorrow = LocalDate.of(2026, 1, 20)
+        val (_, incTomorrow) = StatsUtils.getBucketIndex(tomorrow, TimeRange.Week, today)
+        assertFalse("Future dates should be excluded", incTomorrow)
     }
 
     @Test
@@ -103,5 +102,24 @@ class StatsUtilsTest {
         val (_, include) = StatsUtils.getBucketIndex(date, TimeRange.Week, today)
         
         assertTrue("System.currentTimeMillis() MUST be included in the current Week view", include)
+    }
+
+    @Test
+    fun `calculateProRatedBMR - start of day`() {
+        val bmr = StatsUtils.calculateProRatedBMR(2400, 0, 0, 0)
+        assertEquals(0, bmr)
+    }
+
+    @Test
+    fun `calculateProRatedBMR - noon`() {
+        val bmr = StatsUtils.calculateProRatedBMR(2400, 12, 0, 0)
+        assertEquals(1200, bmr)
+    }
+
+    @Test
+    fun `calculateProRatedBMR - end of day`() {
+        // 23:59:59
+        val bmr = StatsUtils.calculateProRatedBMR(2400, 23, 59, 59)
+        assertTrue("Should be close to 2400", bmr >= 2399)
     }
 }

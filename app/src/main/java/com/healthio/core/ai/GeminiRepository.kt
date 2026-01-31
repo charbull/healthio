@@ -50,25 +50,33 @@ class GeminiRepository {
             )
             
             val rawText = response.text ?: ""
-            // Extract JSON substring
-            val startIndex = rawText.indexOf('{')
-            val endIndex = rawText.lastIndexOf('}')
-            
-            if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+            parseResponse(rawText)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    internal fun parseResponse(rawText: String): Result<FoodAnalysis> {
+        // Extract JSON substring
+        val startIndex = rawText.indexOf('{')
+        val endIndex = rawText.lastIndexOf('}')
+
+        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+            return try {
                 val jsonString = rawText.substring(startIndex, endIndex + 1)
                 val analysis = Gson().fromJson(jsonString, FoodAnalysis::class.java)
-                
+
                 if (analysis != null) {
                     Result.success(analysis)
                 } else {
                     Result.failure(Exception("Parsed JSON was null"))
                 }
-            } else {
-                Result.failure(Exception("No valid JSON found in response: $rawText"))
+            } catch (e: Exception) {
+                Result.failure(Exception("JSON Parsing failed: ${e.message}"))
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(e)
+        } else {
+            return Result.failure(Exception("No valid JSON found in response: $rawText"))
         }
     }
 }

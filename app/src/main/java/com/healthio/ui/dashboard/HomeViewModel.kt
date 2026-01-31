@@ -110,11 +110,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun updateState(data: HomeData, weight: Float?) {
         lastActiveBurned = data.burned ?: 0
         val calendar = java.util.Calendar.getInstance()
-        val hoursPassed = calendar.get(java.util.Calendar.HOUR_OF_DAY)
-        val minutesPassed = calendar.get(java.util.Calendar.MINUTE)
-        val dayProgress = (hoursPassed * 60 + minutesPassed) / 1440f
-        
-        val dynamicBaseBurn = (data.baseBurn * dayProgress).toInt()
+        val dynamicBaseBurn = com.healthio.ui.stats.StatsUtils.calculateProRatedBMR(
+            data.baseBurn,
+            calendar.get(java.util.Calendar.HOUR_OF_DAY),
+            calendar.get(java.util.Calendar.MINUTE),
+            calendar.get(java.util.Calendar.SECOND)
+        )
         
         val currentWeightKg = weight ?: 70f
         val proteinGoal = if (data.pMethod == "FIXED") {
@@ -181,12 +182,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         
         // Calculate dynamic BMR burn
         val calendar = java.util.Calendar.getInstance()
-        val hoursPassed = calendar.get(java.util.Calendar.HOUR_OF_DAY)
-        val minutesPassed = calendar.get(java.util.Calendar.MINUTE)
-        val secondsPassed = calendar.get(java.util.Calendar.SECOND)
-        val dayProgress = (hoursPassed * 3600 + minutesPassed * 60 + secondsPassed) / 86400f
-        
-        val dynamicBaseBurn = (currentState.baseDailyBurn * dayProgress).toInt()
+        val dynamicBaseBurn = com.healthio.ui.stats.StatsUtils.calculateProRatedBMR(
+            currentState.baseDailyBurn,
+            calendar.get(java.util.Calendar.HOUR_OF_DAY),
+            calendar.get(java.util.Calendar.MINUTE),
+            calendar.get(java.util.Calendar.SECOND)
+        )
         val totalBurned = lastActiveBurned + dynamicBaseBurn
 
         if (currentState.timerState == TimerState.FASTING && currentState.startTime != null) {

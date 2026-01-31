@@ -49,10 +49,10 @@ class StatsSplitTest {
         
         println("Results: $dailyTotal")
         
-        // Thursday (Day 4) should have 4 hours
-        // Friday (Day 5) should have 16 hours
+        // Thursday should be index 6
+        // Friday (Today) should be index 7
         
-        assert(dailyTotal[4] == 4.0f) { "Thursday should be 4.0" }
-        assert(dailyTotal[5] == 16.0f) { "Friday should be 16.0" }
+        assert(dailyTotal[6] == 4.0f) { "Thursday should be 4.0 (index 6)" }
+        assert(dailyTotal[7] == 16.0f) { "Friday should be 16.0 (index 7)" }
     }
 }
