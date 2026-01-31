@@ -33,7 +33,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _timeRange = MutableStateFlow(TimeRange.Week)
     val timeRange: StateFlow<TimeRange> = _timeRange.asStateFlow()
 
-    private val _statType = MutableStateFlow(StatType.Fasting)
+    private val _statType = MutableStateFlow(StatType.Intake)
     val statType: StateFlow<StatType> = _statType.asStateFlow()
 
     private val _chartSeries = MutableStateFlow<List<List<ChartEntry>>>(emptyList())

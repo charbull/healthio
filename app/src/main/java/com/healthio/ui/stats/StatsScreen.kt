@@ -77,7 +77,7 @@ fun StatsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Stat Type Toggle
-            val tabs = listOf(StatType.Fasting, StatType.Workouts, StatType.Intake)
+            val tabs = listOf(StatType.Intake, StatType.Workouts, StatType.Fasting)
             TabRow(
                 selectedTabIndex = tabs.indexOf(statType).coerceAtLeast(0),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),

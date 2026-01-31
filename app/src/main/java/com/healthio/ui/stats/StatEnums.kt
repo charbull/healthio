@@ -5,5 +5,5 @@ enum class TimeRange {
 }
 
 enum class StatType {
-    Fasting, Workouts, Intake
+    Intake, Workouts, Fasting
 }
