@@ -9,7 +9,7 @@
 - **Input:** User takes a photo via native Camera.
 - **Processing:**
   - Compress image (max 1024px, 80% quality) to save bandwidth.
-  - Send to Gemini 1.5 Flash API (Free Tier).
+  - Send to Gemini 2.5 Pro API.
 - **Prompt Strategy:** Pass image + user's remaining calorie budget.
 - **Output:** JSON with `{items[], total_macros, health_score, feedback_color (HEX), feedback_text}`.
 - **UI:** "Analyzing..." overlay -> Editable Meal Card -> Save to Firestore.
