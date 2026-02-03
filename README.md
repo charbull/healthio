@@ -39,8 +39,9 @@
 ## Getting Started
 
 1.  Clone the repository.
-2.  Add your Gemini API Key in the settings (or code configuration).
-3.  Build and run on an Android device (Android 13+ recommended for notifications).
+2.  Refer to the [User Guide](docs/USER_GUIDE.md) for first-time setup and navigation instructions.
+3.  Add your Gemini API Key in the settings (or code configuration).
+4.  Build and run on an Android device (Android 13+ recommended for notifications).
 
 ## Privacy
 
