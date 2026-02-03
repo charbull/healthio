@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthio.core.data.dataStore
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -36,6 +37,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val PROTEIN_FIXED_GOAL = intPreferencesKey("protein_fixed_goal")
         val PROTEIN_MULTIPLIER = floatPreferencesKey("protein_multiplier")
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -54,7 +56,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     proteinMethod = preferences[PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
                     proteinFixedGoal = preferences[PROTEIN_FIXED_GOAL] ?: 150,
                     proteinMultiplier = preferences[PROTEIN_MULTIPLIER] ?: 1.5f,
-                    weightUnit = preferences[WEIGHT_UNIT] ?: "LBS"
+                    weightUnit = preferences[WEIGHT_UNIT] ?: "LBS",
+                    onboardingCompleted = preferences[ONBOARDING_COMPLETED] ?: false
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -68,6 +71,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setBaseBurn(burn: Int) {
         viewModelScope.launch {
             context.dataStore.edit { it[BASE_DAILY_BURN] = burn }
+        }
+    }
+
+    fun setOnboardingCompleted(completed: Boolean) {
+        viewModelScope.launch {
+            context.dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
         }
     }
 
@@ -149,5 +158,6 @@ data class SettingsUiState(
     val proteinMethod: String = "MULTIPLIER",
     val proteinFixedGoal: Int = 150,
     val proteinMultiplier: Float = 1.5f,
-    val weightUnit: String = "LBS"
+    val weightUnit: String = "LBS",
+    val onboardingCompleted: Boolean = false
 )

@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -33,6 +34,7 @@ import com.healthio.ui.components.FluxTimer
 import com.healthio.ui.components.ManualEntryTypeDialog
 import com.healthio.ui.components.ManualFoodLogDialog
 import com.healthio.ui.components.AddWeightDialog
+import com.healthio.ui.components.OnboardingDialog
 import com.healthio.ui.settings.SettingsViewModel
 import com.healthio.ui.workouts.WorkoutSyncState
 import com.healthio.ui.workouts.WorkoutViewModel
@@ -105,7 +107,24 @@ fun HomeScreen(
     var showAddMealDialog by remember { mutableStateOf(false) }
     var showManualMealDialog by remember { mutableStateOf(false) }
     var showWeightDialog by remember { mutableStateOf(false) }
+    var showOnboarding by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
+
+    // Onboarding check
+    LaunchedEffect(settingsState.onboardingCompleted) {
+        if (!settingsState.onboardingCompleted) {
+            showOnboarding = true
+        }
+    }
+
+    if (showOnboarding) {
+        OnboardingDialog(
+            onDismiss = {
+                showOnboarding = false
+                settingsViewModel.setOnboardingCompleted(true)
+            }
+        )
+    }
 
     // Sync State Feedback
     LaunchedEffect(workoutSyncState) {
@@ -283,6 +302,9 @@ fun HomeScreen(
                     )
                 }
                 Row {
+                    IconButton(onClick = { showOnboarding = true }) {
+                        Icon(imageVector = Icons.Default.HelpOutline, contentDescription = "Guide")
+                    }
                     IconButton(onClick = onNavigateToStats) {
                         Icon(imageVector = Icons.Default.DateRange, contentDescription = "History")
                     }
