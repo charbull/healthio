@@ -31,7 +31,7 @@ fun OnboardingDialog(
     val pages = listOf(
         OnboardingPage(
             "Welcome to Healthio",
-            "Your minimalist, privacy-focused health companion. Let's get you set up in 3 easy steps.",
+            "Your minimalist, privacy-focused health companion. Let's get you set up in a few easy steps.",
             "🥗"
         ),
         OnboardingPage(
@@ -40,14 +40,24 @@ fun OnboardingDialog(
             "📸"
         ),
         OnboardingPage(
-            "Step 2: Privacy First",
+            "Step 2: Body Sync",
+            "Healthio pulls data from Health Connect. Ensure Health Connect is installed, and your other apps (Garmin, Withings, etc.) are set to sync with it. Just grant Healthio permission when prompted!",
+            "🏃‍♂️"
+        ),
+        OnboardingPage(
+            "Step 3: Privacy First",
             "Connect your Google Drive in Settings. We only access files we create, keeping your personal documents 100% private.",
             "🔒"
         ),
         OnboardingPage(
-            "Step 3: Goals",
+            "Step 4: Goals",
             "Set your weight unit (kg/lbs) and nutrition goals in Settings. Your protein goal can even be calculated automatically!",
             "⚙️"
+        ),
+        OnboardingPage(
+            "Step 5: Track History",
+            "Tap the Calendar icon in the top right of the home screen to see your fasting consistency, workout intensity, and weight trends.",
+            "📅"
         ),
         OnboardingPage(
             "Ready to go!",
@@ -77,7 +87,7 @@ fun OnboardingDialog(
             ) {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.height(280.dp)
+                    modifier = Modifier.height(320.dp)
                 ) { index ->
                     val page = pages[index]
                     Column(
