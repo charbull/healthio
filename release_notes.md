@@ -1,11 +1,28 @@
-# Release Notes - v1.0.2
+# Release Notes - v1.0.3
+
+## v1.0.3 - Onboarding & Personalization (2026-02-05)
+
+### ✨ New Features
+*   **Interactive Onboarding:** A new guided experience to help you get started with Health Connect and set up your health journey.
+*   **Weight Unit Customization:** You can now toggle between kilograms (kg) and pounds (lbs) in the settings menu.
+*   **In-App Help:** Added a quick-access help button and an interactive guide for better navigation.
+
+### 📊 Enhancements
+*   **Health Connect Sync:** Improved the reliability and flow of data synchronization with Health Connect.
+*   **Comprehensive Documentation:** A new user guide is now available to help you make the most of Healthio's features.
+*   **Store Presence:** Refreshed Google Play Store assets with high-resolution icons and updated screenshots.
+
+### 🛠️ Technical Improvements
+*   **16 KB Page Size Support:** Further optimizations for next-generation Android hardware.
+*   **Performance Polish:** Refined weight series calculations and chart rendering for a smoother experience.
+
+---
 
 ## v1.0.2 - Play Store Compliance & UI Polish (2026-01-31)
 
 ### 🚀 Performance & Compatibility
 *   **API 35 Compliance:** Updated Target SDK to Android 15 (API 35) to meet the latest Play Store requirements.
 *   **16 KB Device Support:** Fully optimized for next-generation high-performance Android devices.
- Native libraries are now correctly page-aligned to ensure seamless compatibility with future hardware.
 *   **Infrastructure Upgrade:** Upgraded to Gradle 8.7 and Android Gradle Plugin 8.4.0 for improved build reliability and performance.
 
 ### ✨ User Interface & Experience
