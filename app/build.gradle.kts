@@ -19,6 +19,14 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        externalNativeBuild {
+            ndkBuild {
+                arguments("-DUMMY_PAGE_SIZE")
+            }
+            cmake {
+                arguments("-DUMMY_PAGE_SIZE")
+            }
+        }
     }
 
     signingConfigs {
