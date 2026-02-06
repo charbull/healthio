@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -154,15 +155,32 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+                        
                         Button(
+                            onClick = { 
+                                viewModel.triggerManualSync()
+                                Toast.makeText(context, "Sync started...", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Icon(Icons.Default.Sync, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sync Now")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        TextButton(
                             onClick = { 
                                 googleSignInClient.signOut().addOnCompleteListener {
                                     viewModel.disconnectAccount()
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                            }
                         ) {
-                            Text("Disconnect")
+                            Text("Disconnect Account", color = MaterialTheme.colorScheme.error)
                         }
                     } else {
                         Text(

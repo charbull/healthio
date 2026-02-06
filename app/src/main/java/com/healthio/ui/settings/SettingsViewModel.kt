@@ -130,10 +130,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun triggerManualSync() {
+        val workRequest = androidx.work.OneTimeWorkRequestBuilder<BackupWorker>()
+            .build()
+        WorkManager.getInstance(context).enqueue(workRequest)
+    }
+
     private fun scheduleBackup() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.UNMETERED)
-            .setRequiresCharging(true)
             .build()
 
         val workRequest = PeriodicWorkRequestBuilder<BackupWorker>(1, TimeUnit.HOURS)
@@ -142,7 +147,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "BackupWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             workRequest
         )
     }
