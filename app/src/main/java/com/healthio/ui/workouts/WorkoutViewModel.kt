@@ -135,11 +135,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     // Get ALL workouts for this day to subtract their calories from the total active burn
                     // This prevents double counting since individual workouts are also part of active calories
                     val dayWorkoutsForCalc = repository.getWorkoutsBetween(dayStart.toEpochMilli(), actualEnd.toEpochMilli())
-                    val workoutCaloriesSum = dayWorkoutsForCalc
-                        .filter { it.externalId != activeBurnId }
-                        .sumOf { it.calories }
-
-                    val adjustedActiveBurn = (dayActiveCalories - workoutCaloriesSum).coerceAtLeast(0)
+                    
+                    val adjustedActiveBurn = com.healthio.core.health.HealthSyncUtils.calculateAdjustedActiveBurn(
+                        dayActiveCalories,
+                        dayWorkoutsForCalc,
+                        activeBurnId
+                    )
 
                     if (adjustedActiveBurn > 0) {
                         repository.logWorkout(

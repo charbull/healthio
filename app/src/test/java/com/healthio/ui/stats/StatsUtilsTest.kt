@@ -122,4 +122,19 @@ class StatsUtilsTest {
         val bmr = StatsUtils.calculateProRatedBMR(2400, 23, 59, 59)
         assertTrue("Should be close to 2400", bmr >= 2399)
     }
+
+    @Test
+    fun `calculateProRatedBMR - rounding check`() {
+        // 1 hour passed = 1/24 of day. 2400 / 24 = 100
+        val bmr = StatsUtils.calculateProRatedBMR(2400, 1, 0, 0)
+        assertEquals(100, bmr)
+    }
+
+    @Test
+    fun `calculateProRatedBMR - precision check`() {
+        // 1 second passed. 86400 / 86400 = 1.0. 
+        // 86400 * (1/86400) = 1
+        val bmr = StatsUtils.calculateProRatedBMR(86400, 0, 0, 1)
+        assertEquals(1, bmr)
+    }
 }

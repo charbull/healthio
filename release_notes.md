@@ -1,16 +1,13 @@
-# Release Notes - v1.0.5
+# Release Notes - v1.0.6
 
-## v1.0.5 - Critical Bug Fixes & Optimization (2026-02-05)
+## v1.0.6 - Improved Test Coverage (2026-02-05)
 
-### 📊 Accuracy & Logic Fixes
-*   **Calorie Accuracy:** Fixed a major bug where Health Connect data was being double-counted. Calories from individual workouts are now correctly subtracted from the daily active burn total.
-*   **Real-time Stats:** Improved the reliability of the live calorie and timer updates on the Home Screen to prevent UI flickers and race conditions.
-
-### 🛠️ Sync & Infrastructure
-*   **Google Sheets Optimization:** Refactored the backup engine to use batch updates. This makes syncing faster and much more reliable, especially for users with a lot of unsynced data.
-*   **Atomic Syncing:** Data is now only marked as "synced" after a confirmed successful write to Google Sheets, preventing potential data loss or duplicates during poor network conditions.
+### 🧪 Quality Assurance
+*   **New Unit Tests:** Added comprehensive unit tests for Health Connect synchronization logic and BMR calculations.
+*   **Refactored Logic:** Isolated core synchronization math into dedicated utility classes for better maintainability and testability.
+*   **Stability:** Verified edge cases for calorie adjustments and daily active burn calculations.
 
 ---
 
-## v1.0.4 - Sync Reliability & Manual Control (2026-02-05)
+## v1.0.5 - Critical Bug Fixes & Optimization (2026-02-05)
 ...
