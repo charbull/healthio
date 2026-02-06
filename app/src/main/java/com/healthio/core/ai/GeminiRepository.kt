@@ -32,6 +32,8 @@ class GeminiRepository {
             Estimate an Insulin Index Score (0-100), where 0 is no impact (water) and 100 is pure glucose/jelly beans.
             Provide a health score from 1 (Unhealthy) to 10 (Very Healthy).
             
+            IMPORTANT: Return whole numbers (integers) for all numeric values (calories, protein, carbs, fat, fiber, scores).
+            
             Keto Rule: If the dish is high in carbohydrates (generally >15g net carbs) or not keto-friendly, 
             explicitly propose 2-3 keto-friendly alternatives or modifications in the feedback text.
             

@@ -332,8 +332,8 @@ fun ResultContent(
         Spacer(modifier = Modifier.height(8.dp))
         
         val scoreColor = when {
-            analysis.healthScore >= 8 -> Color(0xFF4CAF50)
-            analysis.healthScore >= 5 -> Color(0xFFFF9800)
+            analysis.healthScore >= 8.0 -> Color(0xFF4CAF50)
+            analysis.healthScore >= 5.0 -> Color(0xFFFF9800)
             else -> Color(0xFFF44336)
         }
         
@@ -342,7 +342,7 @@ fun ResultContent(
             shape = MaterialTheme.shapes.small
         ) {
             Text(
-                text = "Health Score: ${analysis.healthScore}/10",
+                text = "Health Score: ${analysis.healthScore.toInt()}/10",
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 color = Color.White,
                 fontWeight = FontWeight.Bold
@@ -378,24 +378,24 @@ fun ResultContent(
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    val netCarbs = (analysis.carbs - analysis.fiber).coerceAtLeast(0)
+                    val netCarbs = (analysis.carbs - analysis.fiber).coerceAtLeast(0.0)
                     KetoStat(
                         label = "Net Carbs", 
-                        value = "${netCarbs}g", 
-                        subtext = "${analysis.fiber}g fiber",
-                        isGood = netCarbs <= 15
+                        value = "${netCarbs.toInt()}g", 
+                        subtext = "${analysis.fiber.toInt()}g fiber",
+                        isGood = netCarbs <= 15.0
                     )
                     
                     val insulinLabel = when {
-                        analysis.insulinScore < 35 -> "Low"
-                        analysis.insulinScore < 65 -> "Medium"
+                        analysis.insulinScore < 35.0 -> "Low"
+                        analysis.insulinScore < 65.0 -> "Medium"
                         else -> "High"
                     }
                     KetoStat(
                         label = "Insulin Impact", 
-                        value = "${analysis.insulinScore}/100", 
+                        value = "${analysis.insulinScore.toInt()}/100", 
                         subtext = insulinLabel,
-                        isGood = analysis.insulinScore < 40
+                        isGood = analysis.insulinScore < 40.0
                     )
                 }
             }
@@ -462,7 +462,7 @@ fun KetoStat(label: String, value: String, subtext: String, isGood: Boolean) {
 }
 
 @Composable
-fun MacroBar(label: String, value: Int, unit: String, max: Int, color: Color) {
+fun MacroBar(label: String, value: Double, unit: String, max: Int, color: Color) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -471,7 +471,7 @@ fun MacroBar(label: String, value: Int, unit: String, max: Int, color: Color) {
         ) {
             Text(text = label, style = MaterialTheme.typography.labelLarge)
             Text(
-                text = "$value$unit",
+                text = "${value.toInt()}$unit",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
         }

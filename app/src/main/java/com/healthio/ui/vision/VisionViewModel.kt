@@ -69,12 +69,12 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
                 MealLog(
                     timestamp = System.currentTimeMillis(),
                     foodName = analysis.foodName,
-                    calories = analysis.calories,
-                    protein = analysis.protein,
-                    carbs = analysis.carbs,
-                    fat = analysis.fat,
-                    fiber = analysis.fiber,
-                    insulinScore = analysis.insulinScore
+                    calories = analysis.calories.toInt(),
+                    protein = analysis.protein.toInt(),
+                    carbs = analysis.carbs.toInt(),
+                    fat = analysis.fat.toInt(),
+                    fiber = analysis.fiber.toInt(),
+                    insulinScore = analysis.insulinScore.toInt()
                 )
             )
             // After saving, reset to Idle to scan again
