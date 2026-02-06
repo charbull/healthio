@@ -58,57 +58,76 @@ class BackupWorker(
 
             // 1. Sync Fasting Logs
             if (unsyncedFasting.isNotEmpty()) {
-                unsyncedFasting.forEach { log ->
-                    val startZone = Instant.ofEpochMilli(log.startTime).atZone(ZoneId.systemDefault())
-                    val tabName = "${startZone.year}_Fasting"
-                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Start", "End", "Hours"))
-                    val values = listOf(listOf(
-                        startZone.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                        startZone.format(DateTimeFormatter.ISO_LOCAL_TIME),
-                        Instant.ofEpochMilli(log.endTime).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_TIME),
-                        String.format("%.2f", log.durationMillis / (1000.0 * 60 * 60))
-                    ))
-                    appendRow(service, spreadsheetId, tabName, values)
+                val groups = unsyncedFasting.groupBy { log ->
+                    Instant.ofEpochMilli(log.startTime).atZone(ZoneId.systemDefault()).year
                 }
-                fastingDao.markAsSynced(unsyncedFasting.map { it.id })
+                groups.forEach { (year, logs) ->
+                    val tabName = "${year}_Fasting"
+                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Start", "End", "Hours"))
+                    val rows = logs.map { log ->
+                        val startZone = Instant.ofEpochMilli(log.startTime).atZone(ZoneId.systemDefault())
+                        val endZone = Instant.ofEpochMilli(log.endTime).atZone(ZoneId.systemDefault())
+                        listOf(
+                            startZone.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            startZone.format(DateTimeFormatter.ISO_LOCAL_TIME),
+                            endZone.format(DateTimeFormatter.ISO_LOCAL_TIME),
+                            String.format("%.2f", log.durationMillis / (1000.0 * 60 * 60))
+                        )
+                    }
+                    if (appendRows(service, spreadsheetId, tabName, rows)) {
+                        fastingDao.markAsSynced(logs.map { it.id })
+                    }
+                }
             }
 
             // 2. Sync Meal Logs
             if (unsyncedMeals.isNotEmpty()) {
-                unsyncedMeals.forEach { meal ->
-                    val time = Instant.ofEpochMilli(meal.timestamp).atZone(ZoneId.systemDefault())
-                    val tabName = "${time.year}_Meals"
-                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Time", "Food", "Calories", "Protein", "Carbs", "Fat"))
-                    val values = listOf(listOf(
-                        time.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                        time.format(DateTimeFormatter.ISO_LOCAL_TIME),
-                        meal.foodName,
-                        meal.calories.toString(),
-                        meal.protein.toString(),
-                        meal.carbs.toString(),
-                        meal.fat.toString()
-                    ))
-                    appendRow(service, spreadsheetId, tabName, values)
+                val groups = unsyncedMeals.groupBy { meal ->
+                    Instant.ofEpochMilli(meal.timestamp).atZone(ZoneId.systemDefault()).year
                 }
-                mealDao.markAsSynced(unsyncedMeals.map { it.id })
+                groups.forEach { (year, meals) ->
+                    val tabName = "${year}_Meals"
+                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Time", "Food", "Calories", "Protein", "Carbs", "Fat"))
+                    val rows = meals.map { meal ->
+                        val time = Instant.ofEpochMilli(meal.timestamp).atZone(ZoneId.systemDefault())
+                        listOf(
+                            time.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            time.format(DateTimeFormatter.ISO_LOCAL_TIME),
+                            meal.foodName,
+                            meal.calories.toString(),
+                            meal.protein.toString(),
+                            meal.carbs.toString(),
+                            meal.fat.toString()
+                        )
+                    }
+                    if (appendRows(service, spreadsheetId, tabName, rows)) {
+                        mealDao.markAsSynced(meals.map { it.id })
+                    }
+                }
             }
 
             // 3. Sync Workouts
             if (unsyncedWorkouts.isNotEmpty()) {
-                unsyncedWorkouts.forEach { workout ->
-                    val time = Instant.ofEpochMilli(workout.timestamp).atZone(ZoneId.systemDefault())
-                    val tabName = "${time.year}_Workouts"
-                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Time", "Type", "Calories", "DurationMin"))
-                    val values = listOf(listOf(
-                        time.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                        time.format(DateTimeFormatter.ISO_LOCAL_TIME),
-                        workout.type,
-                        workout.calories.toString(),
-                        workout.durationMinutes.toString()
-                    ))
-                    appendRow(service, spreadsheetId, tabName, values)
+                val groups = unsyncedWorkouts.groupBy { workout ->
+                    Instant.ofEpochMilli(workout.timestamp).atZone(ZoneId.systemDefault()).year
                 }
-                workoutDao.markAsSynced(unsyncedWorkouts.map { it.id })
+                groups.forEach { (year, workouts) ->
+                    val tabName = "${year}_Workouts"
+                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Time", "Type", "Calories", "DurationMin"))
+                    val rows = workouts.map { workout ->
+                        val time = Instant.ofEpochMilli(workout.timestamp).atZone(ZoneId.systemDefault())
+                        listOf(
+                            time.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            time.format(DateTimeFormatter.ISO_LOCAL_TIME),
+                            workout.type,
+                            workout.calories.toString(),
+                            workout.durationMinutes.toString()
+                        )
+                    }
+                    if (appendRows(service, spreadsheetId, tabName, rows)) {
+                        workoutDao.markAsSynced(workouts.map { it.id })
+                    }
+                }
             }
 
             return Result.success()
@@ -141,14 +160,20 @@ class BackupWorker(
                 AddSheetRequest().setProperties(SheetProperties().setTitle(title))
             )
             service.spreadsheets().batchUpdate(spreadsheetId, BatchUpdateSpreadsheetRequest().setRequests(listOf(request))).execute()
-            appendRow(service, spreadsheetId, title, listOf(headers))
+            appendRows(service, spreadsheetId, title, listOf(headers))
         }
     }
 
-    private fun appendRow(service: Sheets, spreadsheetId: String, range: String, values: List<List<String>>) {
-        val body = ValueRange().setValues(values)
-        service.spreadsheets().values().append(spreadsheetId, "$range!A1", body)
-            .setValueInputOption("USER_ENTERED")
-            .execute()
+    private fun appendRows(service: Sheets, spreadsheetId: String, range: String, values: List<List<String>>): Boolean {
+        return try {
+            val body = ValueRange().setValues(values)
+            service.spreadsheets().values().append(spreadsheetId, "$range!A1", body)
+                .setValueInputOption("USER_ENTERED")
+                .execute()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 }
