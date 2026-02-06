@@ -12,22 +12,12 @@ android {
         applicationId = "com.healthio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.0.8"
+        versionCode = 11
+        versionName = "1.0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
-        }
-        externalNativeBuild {
-            ndkBuild {
-                arguments("-DUMMY_PAGE_SIZE")
-                cppFlags("-Wl,-z,max-page-size=16384")
-            }
-            cmake {
-                arguments("-DUMMY_PAGE_SIZE", "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384")
-                cppFlags("-Wl,-z,max-page-size=16384")
-            }
         }
     }
 
