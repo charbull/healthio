@@ -295,21 +295,21 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     val intake = intakeMap[i] ?: 0
                     
                     val hcDailyLogs = logs.filter { it.type == "Health Connect Daily" }
+                    val hcActiveBurnLogs = logs.filter { it.type == "Health Connect Active Burn" || it.type == "Daily Active Burn" }
                     val manualLogs = logs.filter { it.source == "Manual" }
-                    val otherImportedLogs = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" }
+                    val otherIndividualWorkouts = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" && it.type != "Health Connect Active Burn" && it.type != "Daily Active Burn" }
 
                     // Only count activity if there is a meal log OR a workout log
-                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherImportedLogs.isNotEmpty() || hcDailyLogs.isNotEmpty()
+                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherIndividualWorkouts.isNotEmpty() || hcDailyLogs.isNotEmpty() || hcActiveBurnLogs.isNotEmpty()
 
                     val bucketBurn = if (!hasActivity) {
-                        0 // Don't show BMR if nothing was logged for this day
+                        0 
                     } else if (hcDailyLogs.isNotEmpty()) {
-                        // Scenario 1: Health Connect Daily Sync exists (Already contains BMR)
+                        // Scenario 1: Health Connect Total Daily Sync (Already contains BMR)
                         hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
                     } else {
-                        // Scenario 2: No HC Daily Sync (Manual logs or individual HC workouts only)
-                        // Add BMR manually since we have activity
-                        val workoutSum = manualLogs.sumOf { it.calories } + otherImportedLogs.sumOf { it.calories }
+                        // Scenario 2: Active Burn only OR Manual only (Need to add BMR manually)
+                        val workoutSum = manualLogs.sumOf { it.calories } + otherIndividualWorkouts.sumOf { it.calories } + hcActiveBurnLogs.sumOf { it.calories }
                         
                         val isFuture = when (range) {
                             TimeRange.Week -> false
