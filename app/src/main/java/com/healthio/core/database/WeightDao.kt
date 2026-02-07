@@ -26,4 +26,10 @@ interface WeightDao {
 
     @Query("SELECT * FROM weight_logs WHERE externalId = :externalId LIMIT 1")
     suspend fun getWeightByExternalId(externalId: String): WeightLog?
+
+    @Query("SELECT * FROM weight_logs WHERE isSynced = 0")
+    suspend fun getUnsyncedWeights(): List<WeightLog>
+
+    @Query("UPDATE weight_logs SET isSynced = 1 WHERE id IN (:ids)")
+    suspend fun markAsSynced(ids: List<Long>)
 }

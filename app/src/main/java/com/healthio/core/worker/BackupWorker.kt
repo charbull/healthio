@@ -28,6 +28,7 @@ class BackupWorker(
     private val fastingDao = db.fastingDao()
     private val mealDao = db.mealDao()
     private val workoutDao = db.workoutDao()
+    private val weightDao = db.weightDao()
 
     override suspend fun doWork(): Result {
         try {
@@ -38,8 +39,9 @@ class BackupWorker(
             val unsyncedFasting = fastingDao.getUnsyncedLogs()
             val unsyncedMeals = mealDao.getUnsyncedMeals()
             val unsyncedWorkouts = workoutDao.getUnsyncedWorkouts()
+            val unsyncedWeights = weightDao.getUnsyncedWeights()
 
-            if (unsyncedFasting.isEmpty() && unsyncedMeals.isEmpty() && unsyncedWorkouts.isEmpty()) {
+            if (unsyncedFasting.isEmpty() && unsyncedMeals.isEmpty() && unsyncedWorkouts.isEmpty() && unsyncedWeights.isEmpty()) {
                 return Result.success()
             }
 
@@ -137,6 +139,29 @@ class BackupWorker(
                 }
             }
 
+            // 4. Sync Weights
+            if (unsyncedWeights.isNotEmpty()) {
+                val groups = unsyncedWeights.groupBy { weight ->
+                    Instant.ofEpochMilli(weight.timestamp).atZone(ZoneId.systemDefault()).year
+                }
+                groups.forEach { (year, weights) ->
+                    val tabName = "${year}_Weight"
+                    ensureSheetExists(service, spreadsheetId, tabName, listOf("Date", "Time", "WeightKg", "RawTimestamp"))
+                    val rows = weights.map { weight ->
+                        val time = Instant.ofEpochMilli(weight.timestamp).atZone(ZoneId.systemDefault())
+                        listOf(
+                            time.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            time.format(DateTimeFormatter.ISO_LOCAL_TIME),
+                            weight.valueKg.toString(),
+                            weight.timestamp.toString()
+                        )
+                    }
+                    if (appendRows(service, spreadsheetId, tabName, rows)) {
+                        weightDao.markAsSynced(weights.map { it.id })
+                    }
+                }
+            }
+
             return Result.success()
 
         } catch (e: Exception) {
@@ -199,6 +224,17 @@ class BackupWorker(
                                 calories = row.getOrNull(3)?.toString()?.toIntOrNull() ?: 0,
                                 durationMinutes = row.getOrNull(4)?.toString()?.toIntOrNull() ?: 0,
                                 source = "Manual",
+                                isSynced = true
+                            ))
+                        }
+                    }
+                    title.endsWith("_Weight") -> {
+                        dataRows.forEach { row ->
+                            val ts = row.getOrNull(timestampIdx)?.toString()?.toLongOrNull() ?: return@forEach
+                            weightDao.insertWeight(com.healthio.core.database.WeightLog(
+                                timestamp = ts,
+                                valueKg = row.getOrNull(2)?.toString()?.toFloatOrNull() ?: 0f,
+                                source = "Imported",
                                 isSynced = true
                             ))
                         }
