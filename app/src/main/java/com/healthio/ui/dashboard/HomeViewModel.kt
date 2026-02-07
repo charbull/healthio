@@ -128,19 +128,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         _uiState.update { currentState ->
-            val calendar = java.util.Calendar.getInstance()
-            val dynamicBaseBurn = com.healthio.ui.stats.StatsUtils.calculateProRatedBMR(
-                data.baseBurn,
-                calendar.get(java.util.Calendar.HOUR_OF_DAY),
-                calendar.get(java.util.Calendar.MINUTE),
-                calendar.get(java.util.Calendar.SECOND)
-            )
-
             currentState.copy(
                 timerState = if (data.isFasting) TimerState.FASTING else TimerState.EATING,
                 startTime = data.startTime,
                 todayCalories = data.calories ?: 0,
-                todayBurnedCalories = lastActiveBurned + dynamicBaseBurn,
+                todayBurnedCalories = lastActiveBurned,
                 todayProtein = data.protein ?: 0,
                 todayCarbs = data.carbs ?: 0,
                 todayFat = data.fat ?: 0,
@@ -196,16 +188,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { currentState ->
             val now = System.currentTimeMillis()
             
-            // Calculate dynamic BMR burn
-            val calendar = java.util.Calendar.getInstance()
-            val dynamicBaseBurn = com.healthio.ui.stats.StatsUtils.calculateProRatedBMR(
-                currentState.baseDailyBurn,
-                calendar.get(java.util.Calendar.HOUR_OF_DAY),
-                calendar.get(java.util.Calendar.MINUTE),
-                calendar.get(java.util.Calendar.SECOND)
-            )
-            val totalBurned = lastActiveBurned + dynamicBaseBurn
-
             if (currentState.timerState == TimerState.FASTING && currentState.startTime != null) {
                 val elapsed = now - currentState.startTime
                 val progress = (elapsed.toFloat() / targetFastDuration).coerceIn(0f, 1f)
@@ -215,14 +197,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     progress = progress,
                     elapsedMillis = elapsed,
                     timeDisplay = timeString,
-                    todayBurnedCalories = totalBurned
+                    todayBurnedCalories = lastActiveBurned
                 )
             } else {
                 currentState.copy(
                     progress = 0f,
                     elapsedMillis = 0L,
                     timeDisplay = "00:00:00",
-                    todayBurnedCalories = totalBurned
+                    todayBurnedCalories = lastActiveBurned
                 )
             }
         }

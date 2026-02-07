@@ -1,13 +1,12 @@
-# Release Notes - v1.0.9
+# Release Notes - v1.1.0
 
-## v1.0.9 - Advanced Hardware Support (2026-02-05)
+## v1.1.0 - Refined Energy Tracking (2026-02-05)
 
-### 🚀 Performance & Compatibility
-*   **16 KB Page Size Alignment:** Successfully implemented deep-level 16 KB page alignment for all native dependencies (including CameraX and Image Processing utilities).
-*   **Modern Packaging:** Transitioned to the latest Android Gradle Plugin packaging standards to ensure uncompressed and perfectly aligned native libraries.
-*   **Android 15 Ready:** Fully verified compatibility with high-performance Android 15 devices.
+### ✨ User Experience
+*   **Pure Energy Tracking:** Updated the Home Screen to only show calories burned from logged workouts and activities. Pro-rated BMR estimates have been removed from the daily dashboard to ensure that "if you don't have data, we don't show data."
+*   **Clearer Energy Balance:** Your "Net kcal" now reflects a direct comparison between your food intake and your logged physical activity.
 
 ---
 
-## v1.0.8 - AI Robustness & Developer Experience (2026-02-05)
+## v1.0.9 - Advanced Hardware Support (2026-02-05)
 ...
