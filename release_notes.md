@@ -1,12 +1,13 @@
-# Release Notes - v1.1.6
+# Release Notes - v1.2.0
 
-## v1.1.6 - Refined Energy Tracking (2026-02-05)
+## v1.2.0 - Two-Way Cloud Sync (2026-02-05)
 
-### ✨ Improved Dashboards
-*   **Intelligent History:** The Progress charts now intelligently hide energy data for days without logged meals or workouts. This eliminates confusing large negative balances while maintaining full accuracy for days with activity.
-*   **Live Home Stats:** Kept the real-time pro-rated calorie burn on the Home Screen so you can track your energy expenditure as it happens throughout the day.
+### ☁️ Data Portability & Backup
+*   **Two-Way Synchronization:** Healthio now supports full two-way sync with Google Sheets. If you switch phones or reinstall the app, connecting your Google account will automatically pull your existing history (fasting, meals, and workouts) from your "Healthio Dashboard Data" spreadsheet.
+*   **Enhanced Spreadsheet Structure:** Added high-precision timestamps to the spreadsheet to ensure data integrity and prevent duplicates during multi-device synchronization.
+*   **Automatic Discovery:** The app now intelligently searches your Google Drive for existing Healthio data upon initial connection.
 
 ---
 
-## v1.1.5 - Pure Energy Charting (2026-02-05)
+## v1.1.6 - Refined Energy Tracking (2026-02-05)
 ...
