@@ -12,12 +12,22 @@ android {
         applicationId = "com.healthio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.2.2"
+        versionCode = 22
+        versionName = "1.2.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+        externalNativeBuild {
+            ndkBuild {
+                arguments("-DUMMY_PAGE_SIZE")
+                cppFlags("-Wl,-z,max-page-size=16384")
+            }
+            cmake {
+                arguments("-DUMMY_PAGE_SIZE", "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384")
+                cppFlags("-Wl,-z,max-page-size=16384")
+            }
         }
     }
 
@@ -57,6 +67,7 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+        doNotStrip("**/libimage_processing_util_jni.so")
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/DEPENDENCIES"
