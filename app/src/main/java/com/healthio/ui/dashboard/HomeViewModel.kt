@@ -46,9 +46,9 @@ data class HomeUiState(
     val baseDailyBurn: Int = 1800,
     val currentWeight: Float? = null,
     val weightUnit: String = "LBS",
-    val carbsGoal: Int = 30,
+    val carbsGoal: Int = 50,
     val fatGoal: Int = 130,
-    val proteinGoal: Int = 105
+    val proteinGoal: Int = 56
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -69,11 +69,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val settingsFlow = context.dataStore.data.map { preferences ->
                 SettingsData(
                     baseBurn = preferences[SettingsViewModel.BASE_DAILY_BURN] ?: 1800,
-                    carbsGoal = preferences[SettingsViewModel.DAILY_CARBS_GOAL] ?: 30,
+                    carbsGoal = preferences[SettingsViewModel.DAILY_CARBS_GOAL] ?: 50,
                     fatGoal = preferences[SettingsViewModel.DAILY_FAT_GOAL] ?: 130,
                     pMethod = preferences[SettingsViewModel.PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
                     pFixed = preferences[SettingsViewModel.PROTEIN_FIXED_GOAL] ?: 150,
-                    pMult = preferences[SettingsViewModel.PROTEIN_MULTIPLIER] ?: 1.5f,
+                    pMult = preferences[SettingsViewModel.PROTEIN_MULTIPLIER] ?: 0.8f,
                     weightUnit = preferences[SettingsViewModel.WEIGHT_UNIT] ?: "LBS"
                 )
             }

@@ -51,11 +51,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     isConnected = !preferences[GOOGLE_ACCOUNT_EMAIL].isNullOrEmpty(),
                     geminiApiKey = preferences[GEMINI_API_KEY],
                     baseDailyBurn = preferences[BASE_DAILY_BURN] ?: 1800,
-                    carbsGoal = preferences[DAILY_CARBS_GOAL] ?: 30,
+                    carbsGoal = preferences[DAILY_CARBS_GOAL] ?: 50,
                     fatGoal = preferences[DAILY_FAT_GOAL] ?: 130,
                     proteinMethod = preferences[PROTEIN_CALC_METHOD] ?: "MULTIPLIER",
                     proteinFixedGoal = preferences[PROTEIN_FIXED_GOAL] ?: 150,
-                    proteinMultiplier = preferences[PROTEIN_MULTIPLIER] ?: 1.5f,
+                    proteinMultiplier = preferences[PROTEIN_MULTIPLIER] ?: 0.8f,
                     weightUnit = preferences[WEIGHT_UNIT] ?: "LBS",
                     onboardingCompleted = preferences[ONBOARDING_COMPLETED] ?: false
                 )
@@ -158,11 +158,11 @@ data class SettingsUiState(
     val connectedEmail: String? = null,
     val geminiApiKey: String? = null,
     val baseDailyBurn: Int = 1800,
-    val carbsGoal: Int = 30,
+    val carbsGoal: Int = 50,
     val fatGoal: Int = 130,
     val proteinMethod: String = "MULTIPLIER",
     val proteinFixedGoal: Int = 150,
-    val proteinMultiplier: Float = 1.5f,
+    val proteinMultiplier: Float = 0.8f,
     val weightUnit: String = "LBS",
     val onboardingCompleted: Boolean = false
 )

@@ -1,12 +1,12 @@
-# Release Notes - v1.1.0
+# Release Notes - v1.1.1
 
-## v1.1.0 - Refined Energy Tracking (2026-02-05)
+## v1.1.1 - Configuration Refinement (2026-02-05)
 
-### ✨ User Experience
-*   **Pure Energy Tracking:** Updated the Home Screen to only show calories burned from logged workouts and activities. Pro-rated BMR estimates have been removed from the daily dashboard to ensure that "if you don't have data, we don't show data."
-*   **Clearer Energy Balance:** Your "Net kcal" now reflects a direct comparison between your food intake and your logged physical activity.
+### ⚙️ Settings Updates
+*   **New Default Carbs Goal:** Increased the default daily carbs goal to 50g.
+*   **Updated Protein Calculation:** The default protein multiplier is now set to 0.8g per kg of body weight, aligning with standard nutritional guidelines.
 
 ---
 
-## v1.0.9 - Advanced Hardware Support (2026-02-05)
+## v1.1.0 - Refined Energy Tracking (2026-02-05)
 ...
