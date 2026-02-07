@@ -176,15 +176,17 @@ class MainActivity : ComponentActivity() {
 
                             }
 
-                            composable("vision") {
+                                                        composable("vision") {
 
-                                VisionScreen(
+                                                            VisionScreen(
 
-                                    onBack = { navController.popBackStack() }
+                                                                onBack = { navController.popBackStack() },
 
-                                )
+                                                                onNavigateToSettings = { navController.navigate("settings") }
 
-                            }
+                                                            )
+
+                                                        }
 
                         }
 

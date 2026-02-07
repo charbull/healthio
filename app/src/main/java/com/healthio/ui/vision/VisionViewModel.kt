@@ -33,6 +33,10 @@ class VisionViewModel(application: Application) : AndroidViewModel(application) 
     private val _state = MutableStateFlow<VisionState>(VisionState.Idle)
     val state: StateFlow<VisionState> = _state.asStateFlow()
 
+    val hasApiKey = context.dataStore.data.map { 
+        !it[SettingsViewModel.GEMINI_API_KEY].isNullOrEmpty() 
+    }
+
     fun onImageCaptured(bitmap: Bitmap) {
         _state.value = VisionState.Review(bitmap)
     }

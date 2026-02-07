@@ -1,12 +1,12 @@
-# Release Notes - v1.1.2
+# Release Notes - v1.1.3
 
-## v1.1.2 - Enhanced AI Context & Transparency (2026-02-05)
+## v1.1.3 - AI Onboarding & Setup Guard (2026-02-05)
 
-### 🤖 Smart Vision Transparency
-*   **AI Disclaimers:** Added helpful disclaimers to the meal scanning and analysis screens to remind users that AI estimates should be verified with actual nutritional labels.
-*   **Context Reminders:** Encouraged providing meal context (e.g., "Homemade lasagna") to help the AI provide more accurate macros and calorie counts.
+### 🛠️ AI Setup Improvements
+*   **Smart Vision Guard:** Added a proactive check for the Gemini API Key. If you haven't set one up yet, Smart Vision will now guide you with clear instructions and a direct link to get your free key.
+*   **Seamless Navigation:** Added a quick-access button to jump straight to Settings to enter your API key when needed.
 
 ---
 
-## v1.1.1 - Configuration Refinement (2026-02-05)
+## v1.1.2 - Enhanced AI Context & Transparency (2026-02-05)
 ...

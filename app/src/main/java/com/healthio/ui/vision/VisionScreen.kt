@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,9 +50,11 @@ import kotlin.coroutines.suspendCoroutine
 @Composable
 fun VisionScreen(
     onBack: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: VisionViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val apiKeyPresent by viewModel.hasApiKey.collectAsState(initial = true)
     val context = LocalContext.current
     
     var hasPermission by remember { mutableStateOf(false) }
@@ -95,44 +98,43 @@ fun VisionScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            // We allow gallery access even without camera permission if needed, but for simplicity keeping nested
-            // Actually, let's allow it even if camera permission denied?
-            // But 'hasPermission' guards the whole block.
-            // Let's modify logic to allow gallery always.
-            
-            when (state) {
-                is VisionState.Idle -> {
-                    CameraContent(
-                        hasPermission = hasPermission,
-                        onImageCaptured = { bitmap -> viewModel.onImageCaptured(bitmap) },
-                        onGalleryClick = { 
-                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                        onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
-                    )
-                }
-                is VisionState.Review -> {
-                    val bitmap = (state as VisionState.Review).bitmap
-                    ReviewContent(
-                        bitmap = bitmap,
-                        onAnalyze = { contextText -> viewModel.analyzeImage(contextText) },
-                        onRetake = { viewModel.reset() }
-                    )
-                }
-                is VisionState.Analyzing -> {
-                    LoadingContent()
-                }
-                                                                        is VisionState.Success -> {
-                                                                            val result = (state as VisionState.Success).analysis
-                                                                            ResultContent(
-                                                                                analysis = result,
-                                                                                onSave = { viewModel.saveLog(result) },
-                                                                                onDiscard = { viewModel.reset() }
-                                                                            )
-                                                                        }
-                                                    is VisionState.Error -> {
-                    val error = (state as VisionState.Error).message
-                    ErrorContent(error, onRetry = { viewModel.reset() })
+            if (!apiKeyPresent) {
+                NoApiKeyContent(onNavigateToSettings = onNavigateToSettings)
+            } else {
+                when (state) {
+                    is VisionState.Idle -> {
+                        CameraContent(
+                            hasPermission = hasPermission,
+                            onImageCaptured = { bitmap -> viewModel.onImageCaptured(bitmap) },
+                            onGalleryClick = { 
+                                galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                            onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
+                        )
+                    }
+                    is VisionState.Review -> {
+                        val bitmap = (state as VisionState.Review).bitmap
+                        ReviewContent(
+                            bitmap = bitmap,
+                            onAnalyze = { contextText -> viewModel.analyzeImage(contextText) },
+                            onRetake = { viewModel.reset() }
+                        )
+                    }
+                    is VisionState.Analyzing -> {
+                        LoadingContent()
+                    }
+                                                                            is VisionState.Success -> {
+                                                                                val result = (state as VisionState.Success).analysis
+                                                                                ResultContent(
+                                                                                    analysis = result,
+                                                                                    onSave = { viewModel.saveLog(result) },
+                                                                                    onDiscard = { viewModel.reset() }
+                                                                                )
+                                                                            }
+                                                        is VisionState.Error -> {
+                        val error = (state as VisionState.Error).message
+                        ErrorContent(error, onRetry = { viewModel.reset() })
+                    }
                 }
             }
         }
@@ -511,6 +513,52 @@ fun ErrorContent(error: String, onRetry: () -> Unit) {
         Text(text = error, modifier = Modifier.padding(16.dp))
         Button(onClick = onRetry) {
             Text("Try Again")
+        }
+    }
+}
+
+@Composable
+fun NoApiKeyContent(onNavigateToSettings: () -> Unit) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.VpnKey,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "AI Key Required",
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "To use Smart Vision, you need a free Gemini API Key from Google.",
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = { uriHandler.openUri("https://aistudio.google.com/app/apikey") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Get Free API Key")
+        }
+        
+        OutlinedButton(
+            onClick = onNavigateToSettings,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+        ) {
+            Text("Enter Key in Settings")
         }
     }
 }
