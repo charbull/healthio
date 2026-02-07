@@ -1,11 +1,12 @@
-# Release Notes - v1.1.4
+# Release Notes - v1.1.6
 
-## v1.1.4 - Clean History Sync (2026-02-05)
+## v1.1.6 - Refined Energy Tracking (2026-02-05)
 
-### 📊 Synchronization Refinement
-*   **Clean History:** Health Connect synchronization is now intelligently restricted to data from your app installation date onwards. This prevents old historical data from cluttering your Healthio logs while ensuring today's active burn is perfectly tracked.
+### ✨ Improved Dashboards
+*   **Intelligent History:** The Progress charts now intelligently hide energy data for days without logged meals or workouts. This eliminates confusing large negative balances while maintaining full accuracy for days with activity.
+*   **Live Home Stats:** Kept the real-time pro-rated calorie burn on the Home Screen so you can track your energy expenditure as it happens throughout the day.
 
 ---
 
-## v1.1.3 - AI Onboarding & Setup Guard (2026-02-05)
+## v1.1.5 - Pure Energy Charting (2026-02-05)
 ...

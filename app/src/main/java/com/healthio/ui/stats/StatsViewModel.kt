@@ -292,21 +292,25 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 // Calculate total burn per bucket
                 for (i in 1..bucketCount) {
                     val logs = workoutsByBucket[i] ?: emptyList()
+                    val intake = intakeMap[i] ?: 0
                     
                     val hcDailyLogs = logs.filter { it.type == "Health Connect Daily" }
                     val manualLogs = logs.filter { it.source == "Manual" }
-                    val otherImportedLogs = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" } // Include "Daily Active Burn" for legacy support
+                    val otherImportedLogs = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" }
 
-                    val bucketBurn = if (hcDailyLogs.isNotEmpty()) {
-                        // Scenario 1: Health Connect Sync Exists
-                        // Total = HC Total + Manual Workouts
+                    // Only count activity if there is a meal log OR a workout log
+                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherImportedLogs.isNotEmpty() || hcDailyLogs.isNotEmpty()
+
+                    val bucketBurn = if (!hasActivity) {
+                        0 // Don't show BMR if nothing was logged for this day
+                    } else if (hcDailyLogs.isNotEmpty()) {
+                        // Scenario 1: Health Connect Daily Sync exists (Already contains BMR)
                         hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
                     } else {
-                        // Scenario 2: No Health Connect Sync (Fallback)
-                        // Total = BMR + All Workouts (Manual + Imported Individual)
+                        // Scenario 2: No HC Daily Sync (Manual logs or individual HC workouts only)
+                        // Add BMR manually since we have activity
                         val workoutSum = manualLogs.sumOf { it.calories } + otherImportedLogs.sumOf { it.calories }
                         
-                        // Add BMR (Basal Metabolic Rate)
                         val isFuture = when (range) {
                             TimeRange.Week -> false
                             TimeRange.Month -> i > today.dayOfMonth
@@ -316,25 +320,22 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                         val isToday = when (range) {
                             TimeRange.Week -> i == 7
                             TimeRange.Month -> i == today.dayOfMonth
-                            TimeRange.Year -> false // Handled inside month logic
+                            TimeRange.Year -> false
                         }
                         
                         var bmrAddition = 0
                         if (!isFuture) {
                             if (range == TimeRange.Year) {
                                 if (i == today.monthValue) {
-                                    // Current Month: Past days full BMR + Today pro-rated
                                     val now = java.time.LocalTime.now(zoneId)
                                     val dayProgress = now.toSecondOfDay() / 86400f
                                     val pastDays = today.dayOfMonth - 1
                                     bmrAddition = (baseDailyBurn * pastDays) + (baseDailyBurn * dayProgress).toInt()
                                 } else {
-                                    // Past Month
                                     val daysInMonth = java.time.YearMonth.of(today.year, i).lengthOfMonth()
                                     bmrAddition = baseDailyBurn * daysInMonth
                                 }
                             } else {
-                                // Week or Month view: buckets are days
                                 if (isToday) {
                                     val now = java.time.LocalTime.now(zoneId)
                                     val dayProgress = now.toSecondOfDay() / 86400f
