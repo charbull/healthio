@@ -177,6 +177,12 @@ fun ReviewContent(
             modifier = Modifier.fillMaxWidth(),
             maxLines = 3
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "AI can make mistakes. Provide context for better accuracy.",
+            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+        )
         
         Spacer(modifier = Modifier.height(16.dp))
         
@@ -327,6 +333,12 @@ fun ResultContent(
         Text(
             text = analysis.foodName,
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+        )
+        
+        Text(
+            text = "AI-generated estimates. Always verify with actual labels.",
+            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)),
+            modifier = Modifier.padding(bottom = 8.dp)
         )
         
         Spacer(modifier = Modifier.height(8.dp))
