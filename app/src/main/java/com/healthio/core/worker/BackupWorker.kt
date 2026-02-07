@@ -54,7 +54,7 @@ class BackupWorker(
                 credential
             ).setApplicationName("Healthio").build()
 
-            val (spreadsheetId, isNewDiscovery) = getOrCreateSpreadsheetId(service)
+            val (spreadsheetId, isNewDiscovery) = getOrCreateSpreadsheetId(service, credential)
 
             if (isNewDiscovery) {
                 pullFromSpreadsheet(service, spreadsheetId)
@@ -179,7 +179,7 @@ class BackupWorker(
                     title.endsWith("_Meals") -> {
                         dataRows.forEach { row ->
                             val ts = row.getOrNull(timestampIdx)?.toString()?.toLongOrNull() ?: return@forEach
-                            mealDao.logMeal(com.healthio.core.database.MealLog(
+                            mealDao.insertMeal(com.healthio.core.database.MealLog(
                                 timestamp = ts,
                                 foodName = row.getOrNull(2)?.toString() ?: "Imported",
                                 calories = row.getOrNull(3)?.toString()?.toIntOrNull() ?: 0,
@@ -210,7 +210,7 @@ class BackupWorker(
         }
     }
 
-    private suspend fun getOrCreateSpreadsheetId(service: Sheets): Pair<String, Boolean> {
+    private suspend fun getOrCreateSpreadsheetId(service: Sheets, credential: GoogleAccountCredential): Pair<String, Boolean> {
         val storedId = context.dataStore.data.map { it[SettingsViewModel.SPREADSHEET_ID] }.first()
         if (!storedId.isNullOrEmpty()) return Pair(storedId, false)
 
@@ -218,7 +218,7 @@ class BackupWorker(
         val driveService = com.google.api.services.drive.Drive.Builder(
             com.google.api.client.http.javanet.NetHttpTransport(),
             com.google.api.client.json.gson.GsonFactory.getDefaultInstance(),
-            service.initializer
+            credential
         ).setApplicationName("Healthio").build()
 
         val files = driveService.files().list()

@@ -12,8 +12,8 @@ android {
         applicationId = "com.healthio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.2.0"
+        versionCode = 20
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -36,6 +36,8 @@ android {
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            v1SigningEnabled = false
+            v2SigningEnabled = true
         }
     }
     compileOptions {
@@ -54,6 +56,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = false
+            keepArchivePath("lib/**")
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
