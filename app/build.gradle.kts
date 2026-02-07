@@ -12,22 +12,12 @@ android {
         applicationId = "com.healthio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
-        versionName = "1.2.3"
+        versionCode = 27
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
-        }
-        externalNativeBuild {
-            ndkBuild {
-                arguments("-DUMMY_PAGE_SIZE")
-                cppFlags("-Wl,-z,max-page-size=16384")
-            }
-            cmake {
-                arguments("-DUMMY_PAGE_SIZE", "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384")
-                cppFlags("-Wl,-z,max-page-size=16384")
-            }
         }
     }
 
@@ -66,8 +56,9 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = false
+            keepDebugSymbols.add("**/libimage_processing_util_jni.so")
+            keepDebugSymbols.add("**/libsurface_util_jni.so")
         }
-        doNotStrip("**/libimage_processing_util_jni.so")
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/DEPENDENCIES"
@@ -118,8 +109,8 @@ dependencies {
     // Gemini AI
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
-    // CameraX
-    val cameraxVersion = "1.3.1"
+    // CameraX (Upgraded for 16KB support)
+    val cameraxVersion = "1.4.1"
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
