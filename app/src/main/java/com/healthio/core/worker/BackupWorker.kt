@@ -36,18 +36,9 @@ class BackupWorker(
                 preferences[SettingsViewModel.GOOGLE_ACCOUNT_EMAIL]
             }.first() ?: return Result.success()
 
-            val unsyncedFasting = fastingDao.getUnsyncedLogs()
-            val unsyncedMeals = mealDao.getUnsyncedMeals()
-            val unsyncedWorkouts = workoutDao.getUnsyncedWorkouts()
-            val unsyncedWeights = weightDao.getUnsyncedWeights()
-
-            if (unsyncedFasting.isEmpty() && unsyncedMeals.isEmpty() && unsyncedWorkouts.isEmpty() && unsyncedWeights.isEmpty()) {
-                return Result.success()
-            }
-
             val credential = GoogleAccountCredential.usingOAuth2(
                 context,
-                listOf(SheetsScopes.DRIVE_FILE)
+                listOf(SheetsScopes.DRIVE_FILE, "https://www.googleapis.com/auth/spreadsheets")
             ).setSelectedAccountName(email)
 
             val service = Sheets.Builder(
@@ -60,6 +51,15 @@ class BackupWorker(
 
             if (isNewDiscovery) {
                 pullFromSpreadsheet(service, spreadsheetId)
+            }
+
+            val unsyncedFasting = fastingDao.getUnsyncedLogs()
+            val unsyncedMeals = mealDao.getUnsyncedMeals()
+            val unsyncedWorkouts = workoutDao.getUnsyncedWorkouts()
+            val unsyncedWeights = weightDao.getUnsyncedWeights()
+
+            if (unsyncedFasting.isEmpty() && unsyncedMeals.isEmpty() && unsyncedWorkouts.isEmpty() && unsyncedWeights.isEmpty()) {
+                return Result.success()
             }
 
             // 1. Sync Fasting Logs
@@ -187,56 +187,31 @@ class BackupWorker(
 
                 when {
                     title.endsWith("_Fasting") -> {
-                        val existingTimestamps = fastingDao.getUnsyncedLogs().map { it.startTime }.toSet() // Simple check
                         dataRows.forEach { row ->
-                            val ts = row.getOrNull(timestampIdx)?.toString()?.toLongOrNull() ?: return@forEach
-                            // Check if already in DB (this is a rough check, could be improved)
-                            // But for a fresh install, DB is empty anyway
-                            val durationHrs = row.getOrNull(3)?.toString()?.toDoubleOrNull() ?: 0.0
-                            fastingDao.insertLog(com.healthio.core.database.FastingLog(
-                                startTime = ts,
-                                endTime = ts + (durationHrs * 3600000).toLong(),
-                                durationMillis = (durationHrs * 3600000).toLong(),
-                                isSynced = true
-                            ))
+                            SpreadsheetParser.parseFastingRow(row, timestampIdx)?.let {
+                                fastingDao.insertLog(it)
+                            }
                         }
                     }
                     title.endsWith("_Meals") -> {
                         dataRows.forEach { row ->
-                            val ts = row.getOrNull(timestampIdx)?.toString()?.toLongOrNull() ?: return@forEach
-                            mealDao.insertMeal(com.healthio.core.database.MealLog(
-                                timestamp = ts,
-                                foodName = row.getOrNull(2)?.toString() ?: "Imported",
-                                calories = row.getOrNull(3)?.toString()?.toIntOrNull() ?: 0,
-                                protein = row.getOrNull(4)?.toString()?.toIntOrNull() ?: 0,
-                                carbs = row.getOrNull(5)?.toString()?.toIntOrNull() ?: 0,
-                                fat = row.getOrNull(6)?.toString()?.toIntOrNull() ?: 0,
-                                isSynced = true
-                            ))
+                            SpreadsheetParser.parseMealRow(row, timestampIdx)?.let {
+                                mealDao.insertMeal(it)
+                            }
                         }
                     }
                     title.endsWith("_Workouts") -> {
                         dataRows.forEach { row ->
-                            val ts = row.getOrNull(timestampIdx)?.toString()?.toLongOrNull() ?: return@forEach
-                            workoutDao.insertWorkout(com.healthio.core.database.WorkoutLog(
-                                timestamp = ts,
-                                type = row.getOrNull(2)?.toString() ?: "Imported",
-                                calories = row.getOrNull(3)?.toString()?.toIntOrNull() ?: 0,
-                                durationMinutes = row.getOrNull(4)?.toString()?.toIntOrNull() ?: 0,
-                                source = "Manual",
-                                isSynced = true
-                            ))
+                            SpreadsheetParser.parseWorkoutRow(row, timestampIdx)?.let {
+                                workoutDao.insertWorkout(it)
+                            }
                         }
                     }
                     title.endsWith("_Weight") -> {
                         dataRows.forEach { row ->
-                            val ts = row.getOrNull(timestampIdx)?.toString()?.toLongOrNull() ?: return@forEach
-                            weightDao.insertWeight(com.healthio.core.database.WeightLog(
-                                timestamp = ts,
-                                valueKg = row.getOrNull(2)?.toString()?.toFloatOrNull() ?: 0f,
-                                source = "Imported",
-                                isSynced = true
-                            ))
+                            SpreadsheetParser.parseWeightRow(row, timestampIdx)?.let {
+                                weightDao.insertWeight(it)
+                            }
                         }
                     }
                 }

@@ -39,7 +39,7 @@ fun SettingsScreen(
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
-        .requestScopes(Scope(SheetsScopes.DRIVE_FILE))
+        .requestScopes(Scope(SheetsScopes.DRIVE_FILE), Scope(SheetsScopes.SPREADSHEETS))
         .build()
 
     val googleSignInClient = GoogleSignIn.getClient(context, gso)

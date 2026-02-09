@@ -107,20 +107,13 @@ fun HomeScreen(
     var showAddMealDialog by remember { mutableStateOf(false) }
     var showManualMealDialog by remember { mutableStateOf(false) }
     var showWeightDialog by remember { mutableStateOf(false) }
-    var showOnboarding by remember { mutableStateOf(false) }
+    var forceShowOnboarding by remember { mutableStateOf(false) }
     var tempStartTime by remember { mutableStateOf(0L) }
 
-    // Onboarding check
-    LaunchedEffect(settingsState.onboardingCompleted) {
-        if (!settingsState.onboardingCompleted) {
-            showOnboarding = true
-        }
-    }
-
-    if (showOnboarding) {
+    if (!settingsState.onboardingCompleted || forceShowOnboarding) {
         OnboardingDialog(
             onDismiss = {
-                showOnboarding = false
+                forceShowOnboarding = false
                 settingsViewModel.setOnboardingCompleted(true)
             }
         )
@@ -302,7 +295,7 @@ fun HomeScreen(
                     )
                 }
                 Row {
-                    IconButton(onClick = { showOnboarding = true }) {
+                    IconButton(onClick = { forceShowOnboarding = true }) {
                         Icon(imageVector = Icons.Default.HelpOutline, contentDescription = "Guide")
                     }
                     IconButton(onClick = onNavigateToStats) {
