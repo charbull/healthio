@@ -97,6 +97,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             context.dataStore.edit { preferences ->
                 preferences[GOOGLE_ACCOUNT_EMAIL] = email
             }
+            triggerManualSync()
         }
     }
 
@@ -141,13 +142,29 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             .setRequiredNetworkType(NetworkType.UNMETERED)
             .build()
 
-        val workRequest = PeriodicWorkRequestBuilder<BackupWorker>(1, TimeUnit.HOURS)
+        // Target 11:00 PM
+        val now = java.time.LocalDateTime.now()
+        var target = now.withHour(23).withMinute(0).withSecond(0).withNano(0)
+        
+        if (now.isAfter(target)) {
+            target = target.plusDays(1)
+        }
+        
+        val initialDelay = java.time.Duration.between(now, target).toMinutes()
+
+        val workRequest = PeriodicWorkRequestBuilder<BackupWorker>(24, TimeUnit.HOURS)
             .setConstraints(constraints)
+            .setInitialDelay(initialDelay, TimeUnit.MINUTES)
+            .setBackoffCriteria(
+                androidx.work.BackoffPolicy.EXPONENTIAL,
+                androidx.work.WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "BackupWorker",
-            ExistingPeriodicWorkPolicy.UPDATE,
+            androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
             workRequest
         )
     }

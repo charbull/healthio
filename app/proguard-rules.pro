@@ -15,6 +15,7 @@
 
 # Google API Client rules
 -keep class com.google.api.services.sheets.** { *; }
+-keep class com.google.api.services.drive.** { *; }
 -keep class com.google.api.client.** { *; }
 -dontwarn com.google.api.client.**
 -dontwarn com.google.j2objc.annotations.**
