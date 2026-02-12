@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.android.gms.auth.UserRecoverableAuthException
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
@@ -51,8 +52,11 @@ class BackupWorker(
             val (spreadsheetId, isNewDiscovery) = try {
                 getOrCreateSpreadsheetId(service, credential)
             } catch (e: Exception) {
+                if (e is GoogleJsonResponseException && (e.statusCode == 401 || e.statusCode == 403)) {
+                    // Auth error, might need user intervention
+                    return Result.failure()
+                }
                 e.printStackTrace()
-                // If it's a 404 or auth error, we might want to return failure to stop retrying
                 return Result.retry()
             }
 
@@ -70,6 +74,9 @@ class BackupWorker(
                 try {
                     service.spreadsheets().get(spreadsheetId).execute()
                 } catch (e: Exception) {
+                    if (e is GoogleJsonResponseException && e.statusCode == 404) {
+                        context.dataStore.edit { it.remove(SettingsViewModel.SPREADSHEET_ID) }
+                    }
                     e.printStackTrace()
                 }
                 return Result.success()
@@ -181,7 +188,7 @@ class BackupWorker(
 
             return Result.success()
 
-        } catch (e: com.google.android.gms.auth.UserRecoverableAuthException) {
+        } catch (e: UserRecoverableAuthException) {
             e.printStackTrace()
             // We can't show UI from a worker, so we just fail and wait for user to open app
             return Result.failure()
@@ -252,7 +259,7 @@ class BackupWorker(
                 return Pair(storedId, false)
             } catch (e: Exception) {
                 // If 404 or forbidden, we might have lost access or it was deleted
-                if (e.message?.contains("404") == true || e.message?.contains("403") == true) {
+                if (e is GoogleJsonResponseException && (e.statusCode == 404 || e.statusCode == 403)) {
                     context.dataStore.edit { it.remove(SettingsViewModel.SPREADSHEET_ID) }
                 } else {
                     throw e

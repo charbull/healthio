@@ -140,6 +140,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private fun scheduleBackup() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.UNMETERED)
+            .setRequiresCharging(true)
+            .setRequiresBatteryNotLow(true)
             .build()
 
         // Target 11:00 PM

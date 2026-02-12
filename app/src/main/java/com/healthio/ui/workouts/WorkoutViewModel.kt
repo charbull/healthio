@@ -36,16 +36,6 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _syncState = MutableStateFlow<WorkoutSyncState>(WorkoutSyncState.Idle)
     val syncState: StateFlow<WorkoutSyncState> = _syncState.asStateFlow()
 
-    private fun getInstallDate(): LocalDate {
-        return try {
-            val installTime = getApplication<Application>().packageManager
-                .getPackageInfo(getApplication<Application>().packageName, 0).firstInstallTime
-            Instant.ofEpochMilli(installTime).atZone(ZoneId.systemDefault()).toLocalDate()
-        } catch (e: Exception) {
-            LocalDate.now().minusDays(30) // Fallback
-        }
-    }
-
     fun logManualWorkout(type: String, duration: Int, calories: Int, timestamp: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             repository.logWorkout(
@@ -85,7 +75,6 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 val zoneId = ZoneId.systemDefault()
                 val today = LocalDate.now(zoneId)
                 val now = Instant.now()
-                val installDate = getInstallDate()
                 
                 // 0. Sync BMR from Health Connect
                 val todayStart = today.atStartOfDay(zoneId).toInstant()
@@ -102,7 +91,6 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 // Sync last 30 days of activity (Day by Day)
                 for (i in 0..29) {
                     val targetDate = today.minusDays(i.toLong())
-                    if (targetDate.isBefore(installDate)) continue
                     
                     val dayStart = targetDate.atStartOfDay(zoneId).toInstant()
                     // For today, end at 'now'. For past days, end of day.
@@ -170,10 +158,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                // 3. Sync Weights (Last 365 Days, but no earlier than install date)
-                val threeSixtyFiveDaysAgo = today.minusDays(365)
-                val weightStartDate = if (threeSixtyFiveDaysAgo.isBefore(installDate)) installDate else threeSixtyFiveDaysAgo
-                val weightStart = weightStartDate.atStartOfDay(zoneId).toInstant()
+                // 3. Sync Weights (Last 30 Days)
+                val weightStart = today.minusDays(30).atStartOfDay(zoneId).toInstant()
                 
                 val weights = healthConnectManager.fetchWeights(weightStart, now)
                 

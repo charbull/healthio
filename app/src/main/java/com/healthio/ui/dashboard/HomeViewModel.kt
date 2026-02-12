@@ -115,16 +115,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         lastActiveBurned = data.burned ?: 0
         
         val currentWeightKg = weight ?: 70f
-        val displayWeight = if (data.weightUnit == "LBS") {
-            currentWeightKg * 2.20462f
-        } else {
-            currentWeightKg
-        }
         
         val proteinGoal = if (data.pMethod == "FIXED") {
             data.pFixed
         } else {
-            (data.pMult * displayWeight).toInt()
+            (data.pMult * currentWeightKg).toInt()
         }
 
         _uiState.update { currentState ->
