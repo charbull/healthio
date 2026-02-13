@@ -11,9 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +34,40 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    // Local states for numeric inputs to fix typing glitch
+    var baseBurnText by remember { mutableStateOf(uiState.baseDailyBurn.toString()) }
+    var carbsGoalText by remember { mutableStateOf(uiState.carbsGoal.toString()) }
+    var fatGoalText by remember { mutableStateOf(uiState.fatGoal.toString()) }
+    var proteinMultiplierText by remember { mutableStateOf(uiState.proteinMultiplier.toString()) }
+    var proteinFixedGoalText by remember { mutableStateOf(uiState.proteinFixedGoal.toString()) }
+
+    // Sync local state when external state changes (e.g. initial load)
+    LaunchedEffect(uiState.baseDailyBurn) {
+        if (baseBurnText != uiState.baseDailyBurn.toString()) {
+            baseBurnText = uiState.baseDailyBurn.toString()
+        }
+    }
+    LaunchedEffect(uiState.carbsGoal) {
+        if (carbsGoalText != uiState.carbsGoal.toString()) {
+            carbsGoalText = uiState.carbsGoal.toString()
+        }
+    }
+    LaunchedEffect(uiState.fatGoal) {
+        if (fatGoalText != uiState.fatGoal.toString()) {
+            fatGoalText = uiState.fatGoal.toString()
+        }
+    }
+    LaunchedEffect(uiState.proteinMultiplier) {
+        if (proteinMultiplierText != uiState.proteinMultiplier.toString()) {
+            proteinMultiplierText = uiState.proteinMultiplier.toString()
+        }
+    }
+    LaunchedEffect(uiState.proteinFixedGoal) {
+        if (proteinFixedGoalText != uiState.proteinFixedGoal.toString()) {
+            proteinFixedGoalText = uiState.proteinFixedGoal.toString()
+        }
+    }
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
@@ -236,8 +268,11 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     OutlinedTextField(
-                        value = uiState.baseDailyBurn.toString(),
-                        onValueChange = { viewModel.setBaseBurn(it.toIntOrNull() ?: 0) },
+                        value = baseBurnText,
+                        onValueChange = { 
+                            baseBurnText = it
+                            it.toIntOrNull()?.let { burn -> viewModel.setBaseBurn(burn) }
+                        },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         singleLine = true
@@ -258,8 +293,11 @@ fun SettingsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Carbs
                     OutlinedTextField(
-                        value = uiState.carbsGoal.toString(),
-                        onValueChange = { viewModel.setCarbsGoal(it.toIntOrNull() ?: 0) },
+                        value = carbsGoalText,
+                        onValueChange = { 
+                            carbsGoalText = it
+                            it.toIntOrNull()?.let { goal -> viewModel.setCarbsGoal(goal) }
+                        },
                         label = { Text("Daily Carbs Goal (g)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
@@ -269,8 +307,11 @@ fun SettingsScreen(
                     
                     // Fat
                     OutlinedTextField(
-                        value = uiState.fatGoal.toString(),
-                        onValueChange = { viewModel.setFatGoal(it.toIntOrNull() ?: 0) },
+                        value = fatGoalText,
+                        onValueChange = { 
+                            fatGoalText = it
+                            it.toIntOrNull()?.let { goal -> viewModel.setFatGoal(goal) }
+                        },
                         label = { Text("Daily Fat Goal (g)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
@@ -291,8 +332,11 @@ fun SettingsScreen(
                     }
                     if (uiState.proteinMethod == "MULTIPLIER") {
                         OutlinedTextField(
-                            value = uiState.proteinMultiplier.toString(),
-                            onValueChange = { viewModel.setProteinMultiplier(it.toFloatOrNull() ?: 0f) },
+                            value = proteinMultiplierText,
+                            onValueChange = { 
+                                proteinMultiplierText = it
+                                it.toFloatOrNull()?.let { mult -> viewModel.setProteinMultiplier(mult) }
+                            },
                             label = { Text("Multiplier (e.g., 1.5 x Weight)") },
                             modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
@@ -309,8 +353,11 @@ fun SettingsScreen(
                     }
                     if (uiState.proteinMethod == "FIXED") {
                         OutlinedTextField(
-                            value = uiState.proteinFixedGoal.toString(),
-                            onValueChange = { viewModel.setProteinFixedGoal(it.toIntOrNull() ?: 0) },
+                            value = proteinFixedGoalText,
+                            onValueChange = { 
+                                proteinFixedGoalText = it
+                                it.toIntOrNull()?.let { goal -> viewModel.setProteinFixedGoal(goal) }
+                            },
                             label = { Text("Daily Protein (g)") },
                             modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
