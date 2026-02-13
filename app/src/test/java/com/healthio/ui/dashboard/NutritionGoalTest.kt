@@ -36,6 +36,20 @@ class NutritionGoalTest {
     }
 
     @Test
+    fun `Protein goal - handles various multiplier values correctly`() {
+        val weight = 80f // 80kg
+        
+        // 0.8g/kg (Standard)
+        assertEquals(64, calculateProteinGoal(weight, 0.8f, "KG", "MULTIPLIER"))
+        
+        // 1.2g/kg (Active)
+        assertEquals(96, calculateProteinGoal(weight, 1.2f, "KG", "MULTIPLIER"))
+        
+        // 2.0g/kg (High)
+        assertEquals(160, calculateProteinGoal(weight, 2.0f, "KG", "MULTIPLIER"))
+    }
+
+    @Test
     fun `Protein goal - respects FIXED method`() {
         val goal = calculateProteinGoal(
             weightKg = 100f,
