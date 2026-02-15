@@ -208,8 +208,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     val date = Instant.ofEpochMilli(log.timestamp).atZone(zoneId).toLocalDate()
                     val (index, include) = StatsUtils.getBucketIndex(date, range, today)
                     if (include && index in 1..bucketCount) {
-                        // Only count actual workouts
-                        if (log.type != "Daily Active Burn" && log.type != "Daily BMR & Activity") {
+                        // Only count actual workouts (exclude aggregates)
+                        if (log.type != "Health Connect Daily" && log.type != "Health Connect Active Burn" && log.type != "Daily Active Burn" && log.type != "Daily BMR & Activity") {
                             bucketCalories[index] = (bucketCalories[index] ?: 0f) + log.calories.toFloat()
                             bucketMinutes[index] = (bucketMinutes[index] ?: 0f) + log.durationMinutes.toFloat()
                         }
@@ -228,22 +228,22 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // Recalculate filtered lists for frequency stats (keep logic for summary card)
                 val weekSessions = allWorkoutLogs.count { 
-                    it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Week, today).second 
+                    it.type != "Health Connect Daily" && it.type != "Health Connect Active Burn" && it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Week, today).second 
                 }
                 val monthSessions = allWorkoutLogs.count { 
-                    it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Month, today).second 
+                    it.type != "Health Connect Daily" && it.type != "Health Connect Active Burn" && it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Month, today).second 
                 }
                 val yearSessions = allWorkoutLogs.count { 
-                    it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Year, today).second 
+                    it.type != "Health Connect Daily" && it.type != "Health Connect Active Burn" && it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" && StatsUtils.getBucketIndex(Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate(), TimeRange.Year, today).second 
                 }
 
-                val realSessions = filteredWorkouts.filter { it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" }
+                val realSessions = filteredWorkouts.filter { it.type != "Health Connect Daily" && it.type != "Health Connect Active Burn" && it.type != "Daily Active Burn" && it.type != "Daily BMR & Activity" }
                 val totalMins = realSessions.sumOf { it.durationMinutes }
                 val avgIntensity = if (totalMins > 0) realSessions.sumOf { it.calories } / totalMins.toFloat() else 0f
 
                 _workoutDetails.value = WorkoutSummary(
                     sessions = realSessions.size,
-                    calories = filteredWorkouts.sumOf { it.calories }, // Sum ALL calories including adjustments
+                    calories = filteredWorkouts.filter { it.type != "Health Connect Daily" }.sumOf { it.calories }, 
                     minutes = totalMins,
                     sessionsWeek = weekSessions,
                     sessionsMonth = monthSessions,
@@ -295,21 +295,20 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     val intake = intakeMap[i] ?: 0
                     
                     val hcDailyLogs = logs.filter { it.type == "Health Connect Daily" }
-                    val hcActiveBurnLogs = logs.filter { it.type == "Health Connect Active Burn" || it.type == "Daily Active Burn" }
                     val manualLogs = logs.filter { it.source == "Manual" }
-                    val otherIndividualWorkouts = logs.filter { it.source == "Health Connect" && it.type != "Health Connect Daily" && it.type != "Health Connect Active Burn" && it.type != "Daily Active Burn" }
+                    val otherWorkouts = logs.filter { it.type != "Health Connect Daily" && it.source != "Manual" }
 
                     // Only count activity if there is a meal log OR a workout log
-                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherIndividualWorkouts.isNotEmpty() || hcDailyLogs.isNotEmpty() || hcActiveBurnLogs.isNotEmpty()
+                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherWorkouts.isNotEmpty() || hcDailyLogs.isNotEmpty()
 
                     val bucketBurn = if (!hasActivity) {
                         0 
                     } else if (hcDailyLogs.isNotEmpty()) {
-                        // Scenario 1: Health Connect Total Daily Sync (Already contains BMR)
+                        // Scenario 1: Health Connect Total Daily Sync (Already contains BMR) + Manual
                         hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
                     } else {
-                        // Scenario 2: Active Burn only OR Manual only (Need to add BMR manually)
-                        val workoutSum = manualLogs.sumOf { it.calories } + otherIndividualWorkouts.sumOf { it.calories } + hcActiveBurnLogs.sumOf { it.calories }
+                        // Scenario 2: No daily total sync. Sum = Pro-rated BMR + Individual Workouts (Manual or Other)
+                        val workoutSum = manualLogs.sumOf { it.calories } + otherWorkouts.sumOf { it.calories }
                         
                         val isFuture = when (range) {
                             TimeRange.Week -> false

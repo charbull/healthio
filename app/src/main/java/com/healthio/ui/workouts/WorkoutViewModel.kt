@@ -123,35 +123,25 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                     totalNewWorkouts += dayNewCount
 
-                    // 2. Fetch & Insert "Health Connect Active Burn" (Adjusted for individual workouts)
-                    val dayActiveCalories = healthConnectManager.fetchActiveCalories(dayStart, actualEnd)
+                    // 2. Fetch & Insert "Health Connect Daily Total" (BMR + Active)
+                    val dayTotalCalories = healthConnectManager.fetchTotalCalories(dayStart, actualEnd)
                     
-                    val activeBurnId = "hc_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
+                    val dailyTotalId = "hc_daily_total_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}"
                     
-                    // Clean up old IDs
-                    repository.deleteWorkoutByExternalId(activeBurnId)
-                    repository.deleteWorkoutByExternalId("hc_daily_total_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}")
+                    // Clean up ALL old ID variants
+                    repository.deleteWorkoutByExternalId(dailyTotalId)
+                    repository.deleteWorkoutByExternalId("hc_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}")
                     repository.deleteWorkoutByExternalId("daily_active_burn_${targetDate.year}_${targetDate.monthValue}_${targetDate.dayOfMonth}")
 
-                    // Get ALL workouts for this day to subtract their calories from the total active burn
-                    // This prevents double counting since individual workouts are also part of active calories
-                    val dayWorkoutsForCalc = repository.getWorkoutsBetween(dayStart.toEpochMilli(), actualEnd.toEpochMilli())
-                    
-                    val adjustedActiveBurn = com.healthio.core.health.HealthSyncUtils.calculateAdjustedActiveBurn(
-                        dayActiveCalories,
-                        dayWorkoutsForCalc,
-                        activeBurnId
-                    )
-
-                    if (adjustedActiveBurn > 0) {
+                    if (dayTotalCalories > 0) {
                         repository.logWorkout(
                             WorkoutLog(
                                 timestamp = dayStart.toEpochMilli() + 60000, // 1 min past midnight
-                                type = "Health Connect Active Burn",
-                                calories = adjustedActiveBurn,
+                                type = "Health Connect Daily",
+                                calories = dayTotalCalories,
                                 durationMinutes = 0,
                                 source = "Health Connect",
-                                externalId = activeBurnId
+                                externalId = dailyTotalId
                             )
                         )
                         totalDaysUpdated++
@@ -192,7 +182,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 // Result Message
                 val parts = mutableListOf<String>()
                 if (totalNewWorkouts > 0) parts.add("$totalNewWorkouts workouts")
-                if (totalDaysUpdated > 0) parts.add("active calories updated for $totalDaysUpdated days")
+                if (totalDaysUpdated > 0) parts.add("daily totals updated for $totalDaysUpdated days")
                 if (weights.isNotEmpty()) {
                     val msg = if (updatedWeightCount > 0) "$addedWeightCount new, $updatedWeightCount updated weights" else "$addedWeightCount new weights"
                     parts.add("$msg (found ${weights.size})")

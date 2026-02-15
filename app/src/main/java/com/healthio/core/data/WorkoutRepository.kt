@@ -23,6 +23,14 @@ class WorkoutRepository(context: Context) {
         return dao.getBurnedCaloriesBetween(startOfDay, endOfDay)
     }
 
+    fun getTodayWorkouts(): Flow<List<WorkoutLog>> {
+        val zoneId = ZoneId.systemDefault()
+        val today = LocalDate.now(zoneId)
+        val startOfDay = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endOfDay = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        return dao.getWorkoutsFlowBetween(startOfDay, endOfDay)
+    }
+
     suspend fun getImportedExternalIds(): List<String> {
         return dao.getImportedExternalIds()
     }
