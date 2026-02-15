@@ -79,14 +79,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             combine(
-                repository.isFasting, 
-                repository.startTime,
-                mealRepository.getTodayCalories(),
-                workoutRepository.getTodayBurnedCalories(),
-                settingsFlow,
-                mealRepository.getTodayProtein(),
-                mealRepository.getTodayCarbs(),
-                mealRepository.getTodayFat()
+                repository.isFasting.onStart { emit(false) }, 
+                repository.startTime.onStart { emit(null) },
+                mealRepository.getTodayCalories().onStart { emit(null) },
+                workoutRepository.getTodayBurnedCalories().onStart { emit(null) },
+                settingsFlow.onStart { 
+                    emit(SettingsData(1800, 50, 130, "MULTIPLIER", 150, 0.8f, "LBS")) 
+                },
+                mealRepository.getTodayProtein().onStart { emit(null) },
+                mealRepository.getTodayCarbs().onStart { emit(null) },
+                mealRepository.getTodayFat().onStart { emit(null) }
             ) { args ->
                 val isFasting = args[0] as Boolean
                 val startTime = args[1] as Long?

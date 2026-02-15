@@ -50,6 +50,17 @@ class NutritionGoalTest {
     }
 
     @Test
+    fun `Protein goal - calculation updates correctly when weight changes`() {
+        val multiplier = 1.0f
+        
+        val goalSmall = calculateProteinGoal(60f, multiplier, "KG", "MULTIPLIER")
+        assertEquals(60, goalSmall)
+        
+        val goalLarge = calculateProteinGoal(90f, multiplier, "KG", "MULTIPLIER")
+        assertEquals(90, goalLarge)
+    }
+
+    @Test
     fun `Protein goal - respects FIXED method`() {
         val goal = calculateProteinGoal(
             weightKg = 100f,
