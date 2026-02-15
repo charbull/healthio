@@ -129,12 +129,14 @@ class HealthConnectManager(private val context: Context) {
             recordType = WeightRecord::class,
             timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
         )
-        return client.readRecords(request).records.map { record ->
-            HCWeight(
-                externalId = record.metadata.id,
-                timestamp = record.time,
-                valueKg = record.weight.inKilograms
-            )
-        }
+        return client.readRecords(request).records
+            .sortedByDescending { it.time }
+            .map { record ->
+                HCWeight(
+                    externalId = record.metadata.id,
+                    timestamp = record.time,
+                    valueKg = record.weight.inKilograms
+                )
+            }
     }
 }

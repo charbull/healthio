@@ -148,8 +148,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                // 3. Sync Weights (Last 30 Days)
-                val weightStart = today.minusDays(30).atStartOfDay(zoneId).toInstant()
+                // 3. Sync Weights (Last 365 Days)
+                val weightStart = today.minusDays(365).atStartOfDay(zoneId).toInstant()
                 
                 val weights = healthConnectManager.fetchWeights(weightStart, now)
                 

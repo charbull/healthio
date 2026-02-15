@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
@@ -104,7 +105,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     settings.carbsGoal, settings.fatGoal, settings.pMethod, settings.pFixed, settings.pMult,
                     settings.weightUnit
                 )
-            }.combine(weightRepository.getLatestWeight().onStart { emit(null) }) { data, weight ->
+            }.combine(weightRepository.getLatestWeight().onStart { emit(null) }.distinctUntilChanged()) { data, weight ->
                 updateState(data, weight?.valueKg)
             }.collect { }
         }
