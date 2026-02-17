@@ -294,57 +294,31 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                     val logs = workoutsByBucket[i] ?: emptyList()
                     val intake = intakeMap[i] ?: 0
                     
-                    val hcDailyLogs = logs.filter { it.type == "Health Connect Daily" }
+                    val hcActiveBurnLogs = logs.filter { it.type == "Health Connect Active Burn" }
+                    val hcDailyLogs = logs.filter { it.type == "Health Connect Daily" } // Legacy/Aggregate fallback
                     val manualLogs = logs.filter { it.source == "Manual" }
-                    val otherWorkouts = logs.filter { it.type != "Health Connect Daily" && it.source != "Manual" }
+                    val otherWorkouts = logs.filter { it.type != "Health Connect Active Burn" && it.type != "Health Connect Daily" && it.source != "Manual" }
 
                     // Only count activity if there is a meal log OR a workout log
-                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherWorkouts.isNotEmpty() || hcDailyLogs.isNotEmpty()
+                    val hasActivity = intake > 0 || manualLogs.isNotEmpty() || otherWorkouts.isNotEmpty() || hcActiveBurnLogs.isNotEmpty() || hcDailyLogs.isNotEmpty()
 
                     val bucketBurn = if (!hasActivity) {
                         0 
+                    } else if (hcActiveBurnLogs.isNotEmpty()) {
+                        // Additive Logic: Pro-rated BMR + HC Active Burn + Manual
+                        val workoutSum = manualLogs.sumOf { it.calories }
+                        val hcActiveSum = hcActiveBurnLogs.sumOf { it.calories }
+                        
+                        val bmrPart = calculateBmrForBucket(i, range, today, zoneId)
+                        bmrPart + hcActiveSum + workoutSum
                     } else if (hcDailyLogs.isNotEmpty()) {
-                        // Scenario 1: Health Connect Total Daily Sync (Already contains BMR) + Manual
+                        // Snapshot Logic (Fallback): HC Daily (BMR+Active) + Manual
                         hcDailyLogs.sumOf { it.calories } + manualLogs.sumOf { it.calories }
                     } else {
-                        // Scenario 2: No daily total sync. Sum = Pro-rated BMR + Individual Workouts (Manual or Other)
+                        // Standard Logic: Pro-rated BMR + All individual workouts
                         val workoutSum = manualLogs.sumOf { it.calories } + otherWorkouts.sumOf { it.calories }
-                        
-                        val isFuture = when (range) {
-                            TimeRange.Week -> false
-                            TimeRange.Month -> i > today.dayOfMonth
-                            TimeRange.Year -> i > today.monthValue
-                        }
-                        
-                        val isToday = when (range) {
-                            TimeRange.Week -> i == 7
-                            TimeRange.Month -> i == today.dayOfMonth
-                            TimeRange.Year -> false
-                        }
-                        
-                        var bmrAddition = 0
-                        if (!isFuture) {
-                            if (range == TimeRange.Year) {
-                                if (i == today.monthValue) {
-                                    val now = java.time.LocalTime.now(zoneId)
-                                    val dayProgress = now.toSecondOfDay() / 86400f
-                                    val pastDays = today.dayOfMonth - 1
-                                    bmrAddition = (baseDailyBurn * pastDays) + (baseDailyBurn * dayProgress).toInt()
-                                } else {
-                                    val daysInMonth = java.time.YearMonth.of(today.year, i).lengthOfMonth()
-                                    bmrAddition = baseDailyBurn * daysInMonth
-                                }
-                            } else {
-                                if (isToday) {
-                                    val now = java.time.LocalTime.now(zoneId)
-                                    val dayProgress = now.toSecondOfDay() / 86400f
-                                    bmrAddition = (baseDailyBurn * dayProgress).toInt()
-                                } else {
-                                    bmrAddition = baseDailyBurn
-                                }
-                            }
-                        }
-                        workoutSum + bmrAddition
+                        val bmrPart = calculateBmrForBucket(i, range, today, zoneId)
+                        workoutSum + bmrPart
                     }
                     burnedMap[i] = bucketBurn
                     totalBurned += bucketBurn
@@ -406,5 +380,41 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
         _chartSeries.value = seriesList
         _chartLabels.value = labels
+    }
+
+    private fun calculateBmrForBucket(index: Int, range: TimeRange, today: LocalDate, zoneId: ZoneId): Int {
+        val isFuture = when (range) {
+            TimeRange.Week -> false
+            TimeRange.Month -> index > today.dayOfMonth
+            TimeRange.Year -> index > today.monthValue
+        }
+        
+        val isToday = when (range) {
+            TimeRange.Week -> index == 7
+            TimeRange.Month -> index == today.dayOfMonth
+            TimeRange.Year -> false
+        }
+        
+        if (isFuture) return 0
+
+        return if (range == TimeRange.Year) {
+            if (index == today.monthValue) {
+                val now = java.time.LocalTime.now(zoneId)
+                val dayProgress = now.toSecondOfDay() / 86400f
+                val pastDays = today.dayOfMonth - 1
+                (baseDailyBurn * pastDays) + (baseDailyBurn * dayProgress).toInt()
+            } else {
+                val daysInMonth = java.time.YearMonth.of(today.year, index).lengthOfMonth()
+                baseDailyBurn * daysInMonth
+            }
+        } else {
+            if (isToday) {
+                val now = java.time.LocalTime.now(zoneId)
+                val dayProgress = now.toSecondOfDay() / 86400f
+                (baseDailyBurn * dayProgress).toInt()
+            } else {
+                baseDailyBurn
+            }
+        }
     }
 }

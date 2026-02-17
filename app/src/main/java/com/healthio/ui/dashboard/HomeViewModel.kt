@@ -127,6 +127,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.update { currentState ->
             val calendar = java.util.Calendar.getInstance()
+            // Additive Calorie Logic (Smart Merge):
+            // 1. Pro-rated BMR (Progressive over the day)
             val dynamicBaseBurn = com.healthio.ui.stats.StatsUtils.calculateProRatedBMR(
                 data.baseBurn,
                 calendar.get(java.util.Calendar.HOUR_OF_DAY),
@@ -134,21 +136,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 calendar.get(java.util.Calendar.SECOND)
             )
 
-            // Smart Merge Logic:
-            // 1. Check if we have a "Health Connect Daily" record (contains BMR + Active)
-            val hcDailyLog = lastRawWorkouts.find { it.type == "Health Connect Daily" }
+            // 2. Health Connect Active Burn (Total active burn so far today from HC)
+            val hcActiveBurn = lastRawWorkouts.filter { it.type == "Health Connect Active Burn" }.sumOf { it.calories }
             
-            // 2. Identify manual workouts
+            // 3. Manual workouts (Logged in Healthio)
             val manualWorkoutsSum = lastRawWorkouts.filter { it.source == "Manual" }.sumOf { it.calories }
 
-            val totalBurned = if (hcDailyLog != null) {
-                // If synced from HC, total = HC Daily (BMR+Active) + any Manual entries
-                hcDailyLog.calories + manualWorkoutsSum
+            // 4. Fallback: If no HC Active Burn record exists, sum individual workouts (Imported)
+            val otherWorkoutsSum = if (hcActiveBurn == 0) {
+                lastRawWorkouts.filter { it.source != "Manual" && it.type != "Health Connect Active Burn" && it.type != "Health Connect Daily" }.sumOf { it.calories }
             } else {
-                // Fallback: Total = Pro-rated BMR + Individual Workouts (Manual or Imported)
-                val otherWorkoutsSum = lastRawWorkouts.filter { it.type != "Health Connect Daily" }.sumOf { it.calories }
-                dynamicBaseBurn + otherWorkoutsSum
+                0
             }
+
+            // Total = BMR + Active(HC) + Manual + Fallback
+            val totalBurned = dynamicBaseBurn + hcActiveBurn + manualWorkoutsSum + otherWorkoutsSum
 
             currentState.copy(
                 timerState = if (data.isFasting) TimerState.FASTING else TimerState.EATING,
@@ -219,15 +221,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 calendar.get(java.util.Calendar.SECOND)
             )
 
-            val hcDailyLog = lastRawWorkouts.find { it.type == "Health Connect Daily" }
+            val hcActiveBurn = lastRawWorkouts.filter { it.type == "Health Connect Active Burn" }.sumOf { it.calories }
             val manualWorkoutsSum = lastRawWorkouts.filter { it.source == "Manual" }.sumOf { it.calories }
-
-            val totalBurned = if (hcDailyLog != null) {
-                hcDailyLog.calories + manualWorkoutsSum
+            
+            val otherWorkoutsSum = if (hcActiveBurn == 0) {
+                lastRawWorkouts.filter { it.source != "Manual" && it.type != "Health Connect Active Burn" && it.type != "Health Connect Daily" }.sumOf { it.calories }
             } else {
-                val otherWorkoutsSum = lastRawWorkouts.filter { it.type != "Health Connect Daily" }.sumOf { it.calories }
-                dynamicBaseBurn + otherWorkoutsSum
+                0
             }
+
+            val totalBurned = dynamicBaseBurn + hcActiveBurn + manualWorkoutsSum + otherWorkoutsSum
 
             if (currentState.timerState == TimerState.FASTING && currentState.startTime != null) {
                 val elapsed = now - currentState.startTime
