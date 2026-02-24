@@ -1,0 +1,8 @@
+{
+  "track_id": "track-38-fix-calorie-override",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-02-23T10:00:00Z",
+  "updated_at": "2026-02-23T10:00:00Z",
+  "description": "we have a bug, the watch updates the calories but the healthio app is not overriding the calories from the watch/health connect"
+}

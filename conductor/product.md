@@ -20,7 +20,9 @@
 - **State:** Toggle between "FASTING" (Green ring) and "EATING" (Orange ring).
 - **Automation:** If a Food Log is created while state is "FASTING", prompt user to end fast.
 
-### 3. "Android Body Sync" (Weight)
-- **Logic:** Read-only sync from Android Health Connect.
+### 3. "Android Body Sync" (Weight & Calories)
+- **Weight Logic:** Read-only sync from Android Health Connect.
+- **Calorie Logic:** Aggregates pro-rated BMR + Health Connect Active Burn.
+- **Manual Priority:** Manual workouts entered in Healthio override Health Connect data for their specific duration to ensure accuracy.
 - **Graph:** 30-day weight trend.
 - **Privacy:** Do not store weight on our servers if possible; read live or cache locally.

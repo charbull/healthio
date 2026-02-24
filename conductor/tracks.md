@@ -50,3 +50,4 @@
 | 35 | Meal History Grouping | **Completed** | [View Track](./tracks/track-35-meal-grouping/index.md) |
 | 36 | Weight Trend Axis | **Completed** | [View Track](./tracks/track-36-weight-axis/index.md) |
 | 37 | Calorie Burn Logic | **Completed** | [View Track](./tracks/track-37-calorie-logic/index.md) |
+| 38 | Fix Calorie Override | **Completed** | [View Track](./tracks/track-38-fix-calorie-override/index.md) |
