@@ -78,6 +78,11 @@ class BackupWorker(
                 pullFromSpreadsheet(service, spreadsheetId)
             }
 
+            // Ensure at least the current year's Fasting tab exists so user sees SOMETHING in their Drive
+            // This also validates the spreadsheet is still writable.
+            val currentYear = java.time.LocalDate.now().year
+            ensureSheetExists(service, spreadsheetId, "${currentYear}_Fasting", listOf("Date", "Start", "End", "Hours", "RawTimestamp"))
+
             val unsyncedFasting = fastingDao.getUnsyncedLogs()
             val unsyncedMeals = mealDao.getUnsyncedMeals()
             val unsyncedWorkouts = workoutDao.getUnsyncedWorkouts()
@@ -86,10 +91,7 @@ class BackupWorker(
             Log.d(TAG, "Unsynced data: Fasting=${unsyncedFasting.size}, Meals=${unsyncedMeals.size}, Workouts=${unsyncedWorkouts.size}, Weights=${unsyncedWeights.size}")
 
             if (unsyncedFasting.isEmpty() && unsyncedMeals.isEmpty() && unsyncedWorkouts.isEmpty() && unsyncedWeights.isEmpty()) {
-                Log.d(TAG, "No unsynced data, but ensuring spreadsheet structure exists.")
-                // Ensure at least the current year's Fasting tab exists so user sees SOMETHING in their Drive
-                val currentYear = java.time.LocalDate.now().year
-                ensureSheetExists(service, spreadsheetId, "${currentYear}_Fasting", listOf("Date", "Start", "End", "Hours", "RawTimestamp"))
+                Log.d(TAG, "No unsynced data, structure verified.")
                 return Result.success()
             }
 
