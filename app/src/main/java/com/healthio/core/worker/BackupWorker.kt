@@ -12,6 +12,7 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.SheetsScopes
 import com.google.api.services.sheets.v4.model.*
+import android.util.Log
 import com.healthio.core.data.dataStore
 import com.healthio.core.database.AppDatabase
 import com.healthio.ui.settings.SettingsViewModel
@@ -26,6 +27,10 @@ class BackupWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
+    companion object {
+        private const val TAG = "BackupWorker"
+    }
+
     private val db = AppDatabase.getDatabase(context)
     private val fastingDao = db.fastingDao()
     private val mealDao = db.mealDao()
@@ -33,10 +38,16 @@ class BackupWorker(
     private val weightDao = db.weightDao()
 
     override suspend fun doWork(): Result {
+        Log.d(TAG, "Starting backup work...")
         try {
             val email = context.dataStore.data.map { preferences ->
                 preferences[SettingsViewModel.GOOGLE_ACCOUNT_EMAIL]
-            }.first() ?: return Result.success()
+            }.first() ?: run {
+                Log.d(TAG, "No Google account connected, skipping.")
+                return Result.success()
+            }
+
+            Log.d(TAG, "Connected account: $email")
 
             val credential = GoogleAccountCredential.usingOAuth2(
                 context,
@@ -52,15 +63,18 @@ class BackupWorker(
             val (spreadsheetId, isNewDiscovery) = try {
                 getOrCreateSpreadsheetId(service, credential)
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to get/create spreadsheet", e)
                 if (e is GoogleJsonResponseException && (e.statusCode == 401 || e.statusCode == 403)) {
                     // Auth error, might need user intervention
                     return Result.failure()
                 }
-                e.printStackTrace()
                 return Result.retry()
             }
 
+            Log.d(TAG, "Using spreadsheetId: $spreadsheetId (New discovery: $isNewDiscovery)")
+
             if (isNewDiscovery) {
+                Log.d(TAG, "New discovery, pulling from spreadsheet...")
                 pullFromSpreadsheet(service, spreadsheetId)
             }
 
@@ -69,16 +83,13 @@ class BackupWorker(
             val unsyncedWorkouts = workoutDao.getUnsyncedWorkouts()
             val unsyncedWeights = weightDao.getUnsyncedWeights()
 
+            Log.d(TAG, "Unsynced data: Fasting=${unsyncedFasting.size}, Meals=${unsyncedMeals.size}, Workouts=${unsyncedWorkouts.size}, Weights=${unsyncedWeights.size}")
+
             if (unsyncedFasting.isEmpty() && unsyncedMeals.isEmpty() && unsyncedWorkouts.isEmpty() && unsyncedWeights.isEmpty()) {
-                // Still try to ensure the spreadsheet exists and is healthy
-                try {
-                    service.spreadsheets().get(spreadsheetId).execute()
-                } catch (e: Exception) {
-                    if (e is GoogleJsonResponseException && e.statusCode == 404) {
-                        context.dataStore.edit { it.remove(SettingsViewModel.SPREADSHEET_ID) }
-                    }
-                    e.printStackTrace()
-                }
+                Log.d(TAG, "No unsynced data, but ensuring spreadsheet structure exists.")
+                // Ensure at least the current year's Fasting tab exists so user sees SOMETHING in their Drive
+                val currentYear = java.time.LocalDate.now().year
+                ensureSheetExists(service, spreadsheetId, "${currentYear}_Fasting", listOf("Date", "Start", "End", "Hours", "RawTimestamp"))
                 return Result.success()
             }
 
@@ -254,10 +265,13 @@ class BackupWorker(
         
         // 1. If we have a stored ID, verify it still exists and is accessible
         if (!storedId.isNullOrEmpty()) {
+            Log.d(TAG, "Checking stored spreadsheetId: $storedId")
             try {
                 service.spreadsheets().get(storedId).execute()
+                Log.d(TAG, "Stored spreadsheet is valid.")
                 return Pair(storedId, false)
             } catch (e: Exception) {
+                Log.w(TAG, "Stored spreadsheetId invalid or inaccessible: $storedId")
                 // If 404 or forbidden, we might have lost access or it was deleted
                 if (e is GoogleJsonResponseException && (e.statusCode == 404 || e.statusCode == 403)) {
                     context.dataStore.edit { it.remove(SettingsViewModel.SPREADSHEET_ID) }
@@ -268,6 +282,7 @@ class BackupWorker(
         }
 
         // 2. Always try to find existing spreadsheet by name first to avoid duplicates
+        Log.d(TAG, "Searching Drive for existing 'Healthio Dashboard Data'...")
         val driveService = com.google.api.services.drive.Drive.Builder(
             com.google.api.client.http.javanet.NetHttpTransport(),
             com.google.api.client.json.gson.GsonFactory.getDefaultInstance(),
@@ -276,26 +291,29 @@ class BackupWorker(
 
         val files = try {
             driveService.files().list()
-                .setQ("name = 'Healthio Dashboard Data' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false")
+                .setQ("name contains 'Healthio' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false")
                 .setFields("files(id, name)")
                 .execute().files
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Drive search failed", e)
             null
         }
 
         if (!files.isNullOrEmpty()) {
             val existingId = files[0].id
+            Log.d(TAG, "Found existing spreadsheet in Drive: $existingId")
             context.dataStore.edit { it[SettingsViewModel.SPREADSHEET_ID] = existingId }
             return Pair(existingId, true) // isNewDiscovery = true to trigger a pull from cloud
         }
 
         // 3. Only create if absolutely nothing was found
+        Log.d(TAG, "Creating new spreadsheet 'Healthio Dashboard Data'...")
         val spreadsheet = Spreadsheet()
             .setProperties(SpreadsheetProperties().setTitle("Healthio Dashboard Data"))
         
         val created = service.spreadsheets().create(spreadsheet).execute()
         val newId = created.spreadsheetId
+        Log.d(TAG, "Created new spreadsheet with ID: $newId")
         
         context.dataStore.edit { it[SettingsViewModel.SPREADSHEET_ID] = newId }
         return Pair(newId, false)
